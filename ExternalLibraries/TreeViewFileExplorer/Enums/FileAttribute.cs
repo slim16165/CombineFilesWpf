@@ -1,8 +1,7 @@
-﻿namespace TreeViewFileExplorer.Enums
+﻿namespace TreeViewFileExplorer.Enums;
+
+public enum FileAttribute : uint
 {
-    public enum FileAttribute : uint
-    {
-        Directory = 16,
-        File = 256
-    }
+    Directory = 16,
+    File = 256
 }

@@ -193,6 +193,7 @@
     <Compile Include="Controls\OutputOptionsControl.xaml.cs">
       <DependentUpon>OutputOptionsControl.xaml</DependentUpon>
     </Compile>
+    <Compile Include="MergingConfig.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -215,6 +216,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="script-powershell\Combine-Files.ps1" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

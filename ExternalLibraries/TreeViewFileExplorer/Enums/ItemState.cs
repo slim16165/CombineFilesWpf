@@ -1,9 +1,8 @@
-﻿namespace TreeViewFileExplorer.Enums
+﻿namespace TreeViewFileExplorer.Enums;
+
+public enum ItemState : short
 {
-    public enum ItemState : short
-    {
-        Undefined,
-        Open,
-        Close
-    }
+    Undefined,
+    Open,
+    Close
 }
