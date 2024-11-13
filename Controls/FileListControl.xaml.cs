@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Windows.Controls;
+using TreeViewFileExplorer;
 
 namespace CombineFilesWpf.Controls;
 
@@ -11,7 +12,8 @@ public partial class FileListControl : UserControl
     {
         InitializeComponent();
         FileItems = new ObservableCollection<FileItem>();
-        radTreeListViewFiles.ItemsSource = FileItems;
+        // Inizializzare i dati per il controllo TreeView personalizzato
+        radTreeListViewFiles.DataContext = FileItems;
     }
 
     // Metodo per aggiungere file
@@ -30,13 +32,16 @@ public partial class FileListControl : UserControl
     public ObservableCollection<FileItem> GetSelectedFiles()
     {
         var selectedItems = new ObservableCollection<FileItem>();
-        foreach (var item in radTreeListViewFiles.SelectedItems)
+
+        // Logica personalizzata per ottenere file selezionati
+        foreach (var item in radTreeListViewFiles.SelectedItems)  // Devi creare o trovare una proprietà SelectedItems
         {
             if (item is FileItem fileItem)
             {
                 selectedItems.Add(fileItem);
             }
         }
+
         return selectedItems;
     }
 

@@ -219,6 +219,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="ExternalLibraries\TreeViewFileExplorer\TreeViewFileExplorer.csproj">
+      <Project>{398480ca-d7ca-4fbd-b4f4-65a17f8e2c95}</Project>
+      <Name>TreeViewFileExplorer</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
