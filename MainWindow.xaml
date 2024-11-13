@@ -1,11 +1,8 @@
 ﻿<Window x:Class="FileMergerApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:telerik="http://schemas.telerik.com/2008/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:CombineFilesWpf"
-        mc:Ignorable="d"
-	Title="File Merger" Height="700" Width="800">
+        Title="File Merger" Height="700" Width="800">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -15,7 +12,7 @@
             <RowDefinition Height="Auto"/>
             <!-- Opzioni di Output -->
             <RowDefinition Height="*"/>
-            <!-- Lista File Selezionati -->
+            <!-- RadTreeView dei File -->
             <RowDefinition Height="Auto"/>
             <!-- Barra di Progresso -->
             <RowDefinition Height="Auto"/>
@@ -60,21 +57,22 @@
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,5">
                     <Label Content="Nome File di Output:" Width="150"/>
-                    <TextBox x:Name="txtOutputFileName" Width="200" Text="merged_extension"/>
+                    <TextBox x:Name="txtOutputFileName" Width="200" Text="merged_output.txt"/>
                     <CheckBox x:Name="chkOneFilePerExtension" Content="Un File per Estensione" IsChecked="True" Margin="10,0,0,0"/>
                 </StackPanel>
                 <CheckBox x:Name="chkOverwriteFiles" Content="Sovrascrivi File Esistenti" Margin="0,5"/>
             </StackPanel>
         </GroupBox>
 
-        <!-- Lista File Selezionati -->
+        <!-- RadTreeView dei File -->
         <GroupBox Header="File Selezionati" Grid.Row="3" Margin="0,0,0,10">
-            <DataGrid x:Name="dataGridFiles" AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Extended">
-                <DataGrid.Columns>
-                    <DataGridCheckBoxColumn Binding="{Binding IsSelected}" Width="30"/>
-                    <DataGridTextColumn Header="Percorso" Binding="{Binding Path}" Width="*"/>
-                </DataGrid.Columns>
-            </DataGrid>
+            <telerik:RadTreeView x:Name="radTreeViewFiles" IsTriStateMode="True">
+                <telerik:RadTreeView.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Children}">
+                        <telerik:RadTreeViewItem IsChecked="{Binding IsSelected, Mode=TwoWay}" Header="{Binding Name}"/>
+                    </HierarchicalDataTemplate>
+                </telerik:RadTreeView.ItemTemplate>
+            </telerik:RadTreeView>
         </GroupBox>
 
         <!-- Barra di Progresso -->
