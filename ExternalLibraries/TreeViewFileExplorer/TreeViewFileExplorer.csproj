@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <RootNamespace>TreeViewFileExplorer</RootNamespace>
     <AssemblyName>TreeViewFileExplorer</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
@@ -103,6 +103,7 @@
     <Compile Include="ShellClasses\DummyFileSystemObjectInfo.cs" />
     <Compile Include="ShellClasses\FileSystemObjectInfo.cs" />
     <Compile Include="Manager\ShellManager.cs" />
+    <Compile Include="ShellClasses\IFileSystemObjectInfo.cs" />
     <Compile Include="Structs\ShellFileInfo.cs" />
     <Page Include="TreeViewFileExplorerCustom.xaml">
       <Generator>MSBuild:Compile</Generator>

@@ -1,13 +1,13 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using Microsoft.Win32;
-using Microsoft.WindowsAPICodePack.Dialogs;
-using Newtonsoft.Json;
+using TreeViewFileExplorer.Model;
 
 namespace CombineFilesWpf;
 
@@ -106,7 +106,7 @@ public partial class MainWindow : Window
         // Escludi percorsi specifici
         if (!string.IsNullOrWhiteSpace(FilterOptions.ExcludePaths))
         {
-            var excludePaths = FilterOptions.ExcludePaths.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var excludePaths = FilterOptions.ExcludePaths.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
             foreach (var exclude in excludePaths)
             {
                 if (filePath.IndexOf(exclude, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -119,7 +119,7 @@ public partial class MainWindow : Window
         // Escludi estensioni specifiche
         if (!string.IsNullOrWhiteSpace(FilterOptions.ExcludeExtensions))
         {
-            var excludeExtensions = FilterOptions.ExcludeExtensions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var excludeExtensions = FilterOptions.ExcludeExtensions.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
             if (Array.Exists(excludeExtensions, e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
                 return false;
         }
@@ -127,7 +127,7 @@ public partial class MainWindow : Window
         // Includi solo estensioni specifiche
         if (!string.IsNullOrWhiteSpace(FilterOptions.IncludeExtensions))
         {
-            var includeExtensions = FilterOptions.IncludeExtensions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            var includeExtensions = FilterOptions.IncludeExtensions.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
             if (!Array.Exists(includeExtensions, e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
                 return false;
         }
@@ -140,7 +140,7 @@ public partial class MainWindow : Window
     {
         foreach (var file in FileList.SelectedFiles)
         {
-            FileList.FileItems.Remove(file);
+            FileList.SelectedFiles.Remove(file);
         }
     }
 
@@ -153,7 +153,7 @@ public partial class MainWindow : Window
     // Pulsante per avviare il merging
     private async void BtnStartMerging_Click(object sender, RoutedEventArgs e)
     {
-        var filesToMerge = new List<FileItem>(FileList.FileItems);
+        var filesToMerge = new List<FileItem>(FileList.SelectedFiles);
         if (filesToMerge.Count == 0)
         {
             MessageBox.Show("Nessun file selezionato per il merging.", "Attenzione", MessageBoxButton.OK, MessageBoxImage.Warning);

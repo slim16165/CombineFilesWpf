@@ -1,39 +1,38 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TreeViewFileExplorer
+namespace TreeViewFileExplorer;
+
+[Serializable]
+public abstract class BaseObject : PropertyNotifier
 {
-    [Serializable]
-    public abstract class BaseObject : PropertyNotifier
+    private IDictionary<string, object> m_values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+    public T GetValue<T>(string key)
     {
-        private IDictionary<string, object> m_values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        var value = RetrieveValue(key);
+        return (value is T) ? (T)value : default(T);
+    }
 
-        public T GetValue<T>(string key)
+    private object RetrieveValue(string key)
+    {
+        if (string.IsNullOrEmpty(key))
         {
-            var value = RetrieveValue(key);
-            return (value is T) ? (T)value : default(T);
+            return null;
         }
+        return m_values.ContainsKey(key) ? m_values[key] : null;
+    }
 
-        private object RetrieveValue(string key)
+    public void SetValue(string key, object value)
+    {
+        if (!m_values.ContainsKey(key))
         {
-            if (string.IsNullOrEmpty(key))
-            {
-                return null;
-            }
-            return m_values.ContainsKey(key) ? m_values[key] : null;
+            m_values.Add(key, value);
         }
-
-        public void SetValue(string key, object value)
+        else
         {
-            if (!m_values.ContainsKey(key))
-            {
-                m_values.Add(key, value);
-            }
-            else
-            {
-                m_values[key] = value;
-            }
-            OnPropertyChanged(key);
+            m_values[key] = value;
         }
+        OnPropertyChanged(key);
     }
 }

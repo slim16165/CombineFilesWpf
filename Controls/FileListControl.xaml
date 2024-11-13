@@ -1,27 +1,31 @@
-﻿<UserControl x:Class="CombineFilesWpf.Controls.FileListControl"
+﻿<!-- FileListControl.xaml -->
+<UserControl x:Class="CombineFilesWpf.Controls.FileListControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:treeViewFileExplorer="clr-namespace:TreeViewFileExplorer;assembly=TreeViewFileExplorer">
-    <GroupBox Header="File Selezionati">
-        <!--<telerik:RadTreeListView x:Name="radTreeListViewFiles"
-                                 AutoGenerateColumns="False"
-                                 CanUserResizeColumns="True"
-                                 ShowGroupFooters="False"
-                                 SelectionMode="Extended"
-                                 IsFilteringAllowed="True"
-                                 RowIndicatorVisibility="Collapsed">
-            <telerik:RadTreeListView.ChildTableDefinitions>
-                <telerik:TreeListViewTableDefinition ItemsSource="{Binding Children}" />
-            </telerik:RadTreeListView.ChildTableDefinitions>
-            <telerik:RadTreeListView.Columns>
-                <telerik:GridViewSelectColumn />
-                <telerik:GridViewColumn Header="Nome" Width="*" />
-                <telerik:GridViewColumn Header="Percorso" Width="2*" />
-            </telerik:RadTreeListView.Columns>
-        </telerik:RadTreeListView>-->
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:treeViewFileExplorer="clr-namespace:TreeViewFileExplorer;assembly=TreeViewFileExplorer"
+             mc:Ignorable="d"
+             Height="450" Width="800">
 
+    <Grid>
+        <!-- Includi il controllo personalizzato -->
+        <treeViewFileExplorer:TreeViewFileExplorerCustom x:Name="treeViewFileExplorer" 
+                                          SelectedFilesChanged="TreeViewFileExplorer_SelectedFilesChanged" />
 
-        <treeViewFileExplorer:TreeViewFileExplorerCustom x:Name="radTreeListViewFiles"/>
-
-    </GroupBox>
+        <!-- ListBox per mostrare i file selezionati -->
+        <ListBox ItemsSource="{Binding SelectedFiles, ElementName=treeViewFileExplorer}" 
+                 Margin="0,200,0,0">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="{Binding ImageSource}" Width="16" Height="16" Margin="0,0,5,0"/>
+                        <TextBlock Text="{Binding Name}" />
+                        <TextBlock Text=" - " />
+                        <TextBlock Text="{Binding Path}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </Grid>
 </UserControl>

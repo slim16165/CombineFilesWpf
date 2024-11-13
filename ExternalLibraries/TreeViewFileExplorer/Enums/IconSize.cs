@@ -1,8 +1,7 @@
-﻿namespace TreeViewFileExplorer.Enums
+﻿namespace TreeViewFileExplorer.Enums;
+
+public enum IconSize : short
 {
-    public enum IconSize : short
-    {
-        Small,
-        Large
-    }
+    Small,
+    Large
 }

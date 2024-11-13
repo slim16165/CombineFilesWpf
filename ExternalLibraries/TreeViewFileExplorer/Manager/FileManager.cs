@@ -1,38 +1,39 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using TreeViewFileExplorer.Enums;
+using Size = System.Drawing.Size;
 
-namespace TreeViewFileExplorer
+namespace TreeViewFileExplorer;
+
+public static class FileManager
 {
-    public static class FileManager
+    public static ImageSource GetImageSource(string filename)
     {
-        public static ImageSource GetImageSource(string filename)
-        {
-            return GetImageSource(filename, new Size(16, 16));
-        }
+        return GetImageSource(filename, new Size(16, 16));
+    }
 
-        public static ImageSource GetImageSource(string filename, Size size)
+    public static ImageSource GetImageSource(string filename, Size size)
+    {
+        using (var icon = ShellManager.GetIcon(Path.GetExtension(filename), ItemType.File, IconSize.Small, ItemState.Undefined))
         {
-            using (var icon = ShellManager.GetIcon(Path.GetExtension(filename), ItemType.File, IconSize.Small, ItemState.Undefined))
-            {
-                return Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
-                    System.Windows.Int32Rect.Empty,
-                    BitmapSizeOptions.FromWidthAndHeight(size.Width, size.Height));
-            }
+            return Imaging.CreateBitmapSourceFromHIcon(icon.Handle,
+                System.Windows.Int32Rect.Empty,
+                BitmapSizeOptions.FromWidthAndHeight(size.Width, size.Height));
         }
+    }
 
-        public static void ProcessMultipleFiles(List<string> filenames)
-        {
-            foreach (string filename in filenames)
-            {
-                // Process each file, for example, get its image or other properties
-                ImageSource img = GetImageSource(filename);
-                // Additional processing logic here
-            }
-        }
+    public static void ProcessMultipleFiles(List<string> filenames)
+    {
+        if (filenames == null || filenames.Count == 0)
+            return;
+
+        // Esempio: Mostra tutti i percorsi dei file selezionati
+        string fileList = string.Join(Environment.NewLine, filenames);
+        MessageBox.Show($"File Selezionati:\n{fileList}", "Processo File");
     }
 }

@@ -1,12 +1,11 @@
 ﻿using System.IO;
 
-namespace TreeViewFileExplorer.ShellClasses
+namespace TreeViewFileExplorer.ShellClasses;
+
+internal class DummyFileSystemObjectInfo : FileSystemObjectInfo
 {
-    internal class DummyFileSystemObjectInfo : FileSystemObjectInfo
+    public DummyFileSystemObjectInfo()
+        : base(new DirectoryInfo("DummyFileSystemObjectInfo"))
     {
-        public DummyFileSystemObjectInfo()
-            : base(new DirectoryInfo("DummyFileSystemObjectInfo"))
-        {
-        }
     }
 }

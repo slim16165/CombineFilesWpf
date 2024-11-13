@@ -1,5 +1,4 @@
-﻿<!-- TreeViewFileExplorerCustom.xaml -->
-<UserControl x:Class="TreeViewFileExplorer.TreeViewFileExplorerCustom"
+﻿<UserControl x:Class="TreeViewFileExplorer.TreeViewFileExplorerCustom"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -26,11 +25,17 @@
         <telerik:RadTreeView.ItemTemplate>
             <HierarchicalDataTemplate DataType="{x:Type classes:FileSystemObjectInfo}" ItemsSource="{Binding Path=Children}">
                 <StackPanel Orientation="Horizontal">
+                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                              Margin="0,0,5,0" 
+                              Checked="OnItemChecked" 
+                              Unchecked="OnItemUnchecked"/>
                     <Image Source="{Binding Path=ImageSource, UpdateSourceTrigger=PropertyChanged}" Margin="0,1,8,1" Width="16" Height="16"/>
                     <TextBlock Text="{Binding Path=FileSystemInfo.Name}" />
                 </StackPanel>
             </HierarchicalDataTemplate>
         </telerik:RadTreeView.ItemTemplate>
+
+
 
     </telerik:RadTreeView>
 </UserControl>

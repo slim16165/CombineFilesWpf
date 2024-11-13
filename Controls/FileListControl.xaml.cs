@@ -1,58 +1,59 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
+﻿// FileListControl.xaml.cs
+
+using System;
+using System.Collections.ObjectModel;
 using System.Windows.Controls;
-using TreeViewFileExplorer;
-using TreeViewFileExplorer.ShellClasses;
+using TreeViewFileExplorer.Model;
 
-namespace CombineFilesWpf.Controls;
-
-public partial class FileListControl : UserControl
+namespace CombineFilesWpf.Controls
 {
-    public ObservableCollection<FileItem> FileItems { get; set; }
-    public ObservableCollection<FileItem> SelectedFiles { get; private set; } = new ObservableCollection<FileItem>();
-
-    public FileListControl()
+    public partial class FileListControl : UserControl
     {
-        InitializeComponent();
-        FileItems = new ObservableCollection<FileItem>();
-        // Inizializzare i dati per il controllo TreeView personalizzato
-        radTreeListViewFiles.DataContext = FileItems;
-        radTreeListViewFiles.radTreeView.SelectionChanged += RadTreeView_SelectionChanged;
-    }
+        // FileItems potrebbe non essere più necessario se gestito da TreeViewFileExplorerCustom
+        // public ObservableCollection<FileItem> FileItems { get; set; }
 
-    // Metodo per aggiungere file
-    public void AddFile(FileItem file)
-    {
-        FileItems.Add(file);
-    }
+        public ObservableCollection<FileItem> SelectedFiles { get; private set; } = new ObservableCollection<FileItem>();
 
-    // Metodo per resettare la lista
-    public void ClearFiles()
-    {
-        FileItems.Clear();
-    }
-
-    private void RadTreeView_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        SelectedFiles.Clear();
-        foreach (var item in radTreeListViewFiles.SelectedItems)
+        public FileListControl()
         {
-            if (item is FileSystemObjectInfo fso && fso.FileSystemInfo is FileInfo fileInfo)
-            {
-                var fileItem = new FileItem
-                {
-                    Name = fileInfo.Name,
-                    Path = fileInfo.FullName
-                    // Imposta altre proprietà se necessario
-                };
-                SelectedFiles.Add(fileItem);
-            }
+            InitializeComponent();
+            // Inizializzare i dati per il controllo TreeView personalizzato
+            // radTreeListViewFiles.DataContext = FileItems; // Non necessario se gestito internamente
+            // radTreeListViewFiles.radTreeView.SelectionChanged += RadTreeView_SelectionChanged; // Rimosso
         }
-    }
 
-    // Metodo per disabilitare/abilitare i controlli
-    public void ToggleControls(bool isEnabled)
-    {
-        radTreeListViewFiles.IsEnabled = isEnabled;
+        // Metodo per aggiungere file
+        public void AddFile(FileItem file)
+        {
+            // Potrebbe non essere necessario se TreeViewFileExplorerCustom gestisce l'aggiunta dei file
+            // Se necessario, implementa un metodo nel TreeViewFileExplorerCustom per aggiungere file
+        }
+
+        // Metodo per resettare la lista
+        public void ClearFiles()
+        {
+            // Potrebbe non essere necessario se TreeViewFileExplorerCustom gestisce la pulizia
+            // Se necessario, implementa un metodo nel TreeViewFileExplorerCustom per pulire i file
+        }
+
+        // Evento sollevato quando SelectedFiles cambia nel TreeViewFileExplorerCustom
+        private void TreeViewFileExplorer_SelectedFilesChanged(object sender, EventArgs e)
+        {
+            // Aggiorna la collezione SelectedFiles nel FileListControl
+            SelectedFiles.Clear();
+            foreach (var file in treeViewFileExplorer.SelectedFiles)
+            {
+                SelectedFiles.Add(file);
+            }
+
+            // Puoi aggiungere ulteriori logiche qui, ad esempio aggiornare una ListBox o altre UI
+        }
+
+        // Metodo per disabilitare/abilitare i controlli
+        public void ToggleControls(bool isEnabled)
+        {
+            treeViewFileExplorer.IsEnabled = isEnabled;
+            // Altri controlli possono essere abilitati/disabilitati qui
+        }
     }
 }

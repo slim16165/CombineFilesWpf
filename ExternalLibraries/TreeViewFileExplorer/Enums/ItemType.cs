@@ -1,9 +1,8 @@
-﻿namespace TreeViewFileExplorer.Enums
+﻿namespace TreeViewFileExplorer.Enums;
+
+public enum ItemType
 {
-    public enum ItemType
-    {
-        Drive,
-        Folder,
-        File
-    }
+    Drive,
+    Folder,
+    File
 }
