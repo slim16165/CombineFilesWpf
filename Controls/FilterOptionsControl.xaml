@@ -1,0 +1,23 @@
+﻿<UserControl x:Class="CombineFilesWpf.Controls.FilterOptionsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:telerik="http://schemas.telerik.com/2008/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <GroupBox Header="Opzioni di Filtro">
+        <StackPanel Margin="5">
+            <CheckBox x:Name="chkIncludeSubfolders" Content="Includi Sottocartelle" IsChecked="True" Margin="0,0,0,5"/>
+            <CheckBox x:Name="chkExcludeHidden" Content="Escludi File Nascosti" IsChecked="True" Margin="0,0,0,5"/>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Label Content="Estensioni da Includere (es: .txt;.cs):" Width="200"/>
+                <telerik:RadWatermarkTextBox x:Name="txtIncludeExtensions" Width="400" WatermarkContent=".txt;.cs"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Label Content="Estensioni da Escludere:" Width="200"/>
+                <telerik:RadWatermarkTextBox x:Name="txtExcludeExtensions" Width="400" WatermarkContent=".exe;.dll"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Label Content="Percorsi da Escludere:" Width="200"/>
+                <telerik:RadWatermarkTextBox x:Name="txtExcludePaths" Width="400" WatermarkContent="C:\Temp;D:\Backup"/>
+            </StackPanel>
+        </StackPanel>
+    </GroupBox>
+</UserControl>
