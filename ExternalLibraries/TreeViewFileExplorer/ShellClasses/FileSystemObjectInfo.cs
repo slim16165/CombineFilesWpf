@@ -1,4 +1,5 @@
-﻿using System;
+﻿// FileSystemObjectInfo.cs
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
@@ -36,6 +37,7 @@ namespace TreeViewFileExplorer.ShellClasses
         public FileSystemObjectInfo(DriveInfo drive)
             : this(drive.RootDirectory)
         {
+            Drive = drive; // Imposta la proprietà Drive
         }
 
         #region Events
@@ -143,7 +145,7 @@ namespace TreeViewFileExplorer.ShellClasses
             Children.Add(new DummyFileSystemObjectInfo());
         }
 
-        private bool HasDummy()
+        internal bool HasDummy()
         {
             return GetDummy() != null;
         }
@@ -153,12 +155,14 @@ namespace TreeViewFileExplorer.ShellClasses
             return Children.OfType<DummyFileSystemObjectInfo>().FirstOrDefault();
         }
 
-        private void RemoveDummy()
+        internal void RemoveDummy()
         {
             Children.Remove(GetDummy());
         }
 
-        private void ExploreDirectories()
+        // FileSystemObjectInfo.cs (modifiche ai metodi ExploreDirectories e ExploreFiles)
+
+        internal void ExploreDirectories()
         {
             if (Drive?.IsReady == false)
             {
@@ -166,7 +170,21 @@ namespace TreeViewFileExplorer.ShellClasses
             }
             if (FileSystemInfo is DirectoryInfo)
             {
-                var directories = ((DirectoryInfo)FileSystemInfo).GetDirectories();
+                DirectoryInfo dir = (DirectoryInfo)FileSystemInfo;
+                DirectoryInfo[] directories;
+                try
+                {
+                    directories = dir.GetDirectories();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    directories = new DirectoryInfo[0];
+                }
+                catch (Exception)
+                {
+                    directories = new DirectoryInfo[0];
+                }
+
                 foreach (var directory in directories.OrderBy(d => d.Name))
                 {
                     if ((directory.Attributes & FileAttributes.System) != FileAttributes.System &&
@@ -181,6 +199,7 @@ namespace TreeViewFileExplorer.ShellClasses
             }
         }
 
+
         private void FileSystemObject_AfterExplore(object sender, EventArgs e)
         {
             RaiseAfterExplore();
@@ -191,7 +210,7 @@ namespace TreeViewFileExplorer.ShellClasses
             RaiseBeforeExplore();
         }
 
-        private void ExploreFiles()
+        internal void ExploreFiles()
         {
             if (Drive?.IsReady == false)
             {
@@ -199,7 +218,21 @@ namespace TreeViewFileExplorer.ShellClasses
             }
             if (FileSystemInfo is DirectoryInfo)
             {
-                var files = ((DirectoryInfo)FileSystemInfo).GetFiles();
+                DirectoryInfo dir = (DirectoryInfo)FileSystemInfo;
+                FileInfo[] files;
+                try
+                {
+                    files = dir.GetFiles();
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    files = new FileInfo[0];
+                }
+                catch (Exception)
+                {
+                    files = new FileInfo[0];
+                }
+
                 foreach (var file in files.OrderBy(d => d.Name))
                 {
                     if ((file.Attributes & FileAttributes.System) != FileAttributes.System &&
@@ -210,7 +243,7 @@ namespace TreeViewFileExplorer.ShellClasses
                 }
             }
         }
-
+        
         #endregion
     }
 }

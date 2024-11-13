@@ -1,12 +1,15 @@
 ﻿using System.Collections.ObjectModel;
+using System.IO;
 using System.Windows.Controls;
 using TreeViewFileExplorer;
+using TreeViewFileExplorer.ShellClasses;
 
 namespace CombineFilesWpf.Controls;
 
 public partial class FileListControl : UserControl
 {
     public ObservableCollection<FileItem> FileItems { get; set; }
+    public ObservableCollection<FileItem> SelectedFiles { get; private set; } = new ObservableCollection<FileItem>();
 
     public FileListControl()
     {
@@ -14,6 +17,7 @@ public partial class FileListControl : UserControl
         FileItems = new ObservableCollection<FileItem>();
         // Inizializzare i dati per il controllo TreeView personalizzato
         radTreeListViewFiles.DataContext = FileItems;
+        radTreeListViewFiles.radTreeView.SelectionChanged += RadTreeView_SelectionChanged;
     }
 
     // Metodo per aggiungere file
@@ -28,21 +32,22 @@ public partial class FileListControl : UserControl
         FileItems.Clear();
     }
 
-    // Metodo per ottenere i file selezionati
-    public ObservableCollection<FileItem> GetSelectedFiles()
+    private void RadTreeView_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var selectedItems = new ObservableCollection<FileItem>();
-
-        // Logica personalizzata per ottenere file selezionati
-        foreach (var item in radTreeListViewFiles.SelectedItems)  // Devi creare o trovare una proprietà SelectedItems
+        SelectedFiles.Clear();
+        foreach (var item in radTreeListViewFiles.SelectedItems)
         {
-            if (item is FileItem fileItem)
+            if (item is FileSystemObjectInfo fso && fso.FileSystemInfo is FileInfo fileInfo)
             {
-                selectedItems.Add(fileItem);
+                var fileItem = new FileItem
+                {
+                    Name = fileInfo.Name,
+                    Path = fileInfo.FullName
+                    // Imposta altre proprietà se necessario
+                };
+                SelectedFiles.Add(fileItem);
             }
         }
-
-        return selectedItems;
     }
 
     // Metodo per disabilitare/abilitare i controlli

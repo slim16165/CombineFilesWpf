@@ -10,11 +10,11 @@ namespace TreeViewFileExplorer
 
         public T GetValue<T>(string key)
         {
-            var value = GetValue(key);
+            var value = RetrieveValue(key);
             return (value is T) ? (T)value : default(T);
         }
 
-        private object GetValue(string key)
+        private object RetrieveValue(string key)
         {
             if (string.IsNullOrEmpty(key))
             {

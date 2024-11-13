@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -137,8 +138,7 @@ public partial class MainWindow : Window
     // Pulsante per rimuovere i file selezionati
     private void BtnRemoveSelected_Click(object sender, RoutedEventArgs e)
     {
-        var selectedFiles = FileList.GetSelectedFiles();
-        foreach (var file in selectedFiles)
+        foreach (var file in FileList.SelectedFiles)
         {
             FileList.FileItems.Remove(file);
         }
@@ -153,7 +153,7 @@ public partial class MainWindow : Window
     // Pulsante per avviare il merging
     private async void BtnStartMerging_Click(object sender, RoutedEventArgs e)
     {
-        var filesToMerge = new List<FileItem>((IEnumerable<FileItem>)FileList.FileItems);
+        var filesToMerge = new List<FileItem>(FileList.FileItems);
         if (filesToMerge.Count == 0)
         {
             MessageBox.Show("Nessun file selezionato per il merging.", "Attenzione", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -305,28 +305,4 @@ public partial class MainWindow : Window
             }
         }
     }
-}
-
-// Classe per rappresentare un file o una cartella
-public class FileItem
-{
-    public bool IsSelected { get; set; }
-    public string Path { get; set; }
-    public string Name { get; set; }
-    public bool IsFolder { get; set; }
-    public List<FileItem> Children { get; set; } = new List<FileItem>();
-}
-
-// Classe per la configurazione di merging
-public class MergingConfig
-{
-    public bool IncludeSubfolders { get; set; }
-    public bool ExcludeHidden { get; set; }
-    public string IncludeExtensions { get; set; }
-    public string ExcludeExtensions { get; set; }
-    public string ExcludePaths { get; set; }
-    public string OutputFolder { get; set; }
-    public string OutputFileName { get; set; }
-    public bool OneFilePerExtension { get; set; }
-    public bool OverwriteFiles { get; set; }
 }

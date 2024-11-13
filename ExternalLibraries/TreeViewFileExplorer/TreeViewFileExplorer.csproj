@@ -51,6 +51,39 @@
     <Reference Include="System.Xaml">
       <RequiredTargetFramework>4.0</RequiredTargetFramework>
     </Reference>
+    <Reference Include="Telerik.Windows.Controls">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Chart">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Chart.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Charting">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Charting.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Data">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.DataVisualization">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.DataVisualization.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Gauge">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Gauge.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.GridView">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.GridView.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Input">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Input.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Controls.Navigation">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Controls.Navigation.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.Data">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.Data.dll</HintPath>
+    </Reference>
+    <Reference Include="Telerik.Windows.PersistenceFramework">
+      <HintPath>..\..\..\..\A\Telerik\RadControls\Telerik.Windows.PersistenceFramework.dll</HintPath>
+    </Reference>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -62,13 +95,14 @@
     <Compile Include="Enums\ItemType.cs" />
     <Compile Include="Enums\FileAttribute.cs" />
     <Compile Include="Enums\ShellAttribute.cs" />
-    <Compile Include="FileManager.cs" />
+    <Compile Include="Manager\FileManager.cs" />
     <Compile Include="Interop.cs" />
-    <Compile Include="FolderManager.cs" />
+    <Compile Include="Manager\FolderManager.cs" />
+    <Compile Include="Model\FileItem.cs" />
     <Compile Include="ProperyNotifier.cs" />
     <Compile Include="ShellClasses\DummyFileSystemObjectInfo.cs" />
     <Compile Include="ShellClasses\FileSystemObjectInfo.cs" />
-    <Compile Include="ShellManager.cs" />
+    <Compile Include="Manager\ShellManager.cs" />
     <Compile Include="Structs\ShellFileInfo.cs" />
     <Page Include="TreeViewFileExplorerCustom.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -105,5 +139,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
