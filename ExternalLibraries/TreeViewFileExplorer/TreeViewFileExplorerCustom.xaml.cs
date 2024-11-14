@@ -1,225 +1,109 @@
-﻿// TreeViewFileExplorerCustom.xaml.cs
-using System;
-using System.Collections;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
+﻿using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using Telerik.Windows.Controls;
-using TreeViewFileExplorer.Model;
-using TreeViewFileExplorer.ShellClasses;
+using TreeViewFileExplorer.Events;
+using TreeViewFileExplorer.Managers;
+using TreeViewFileExplorer.Services;
+using TreeViewFileExplorer.ViewModels;
 
-namespace TreeViewFileExplorer;
-
-public partial class TreeViewFileExplorerCustom : UserControl
+namespace TreeViewFileExplorer
 {
-    public TreeViewFileExplorerCustom()
-    {
-        InitializeComponent();
-        InitializeFileSystemObjects();
-    }
-
     /// <summary>
-    /// Espone gli elementi selezionati del RadTreeView interno.
+    /// Interaction logic for TreeViewFileExplorerCustom.xaml
     /// </summary>
-    public IList SelectedItems => radTreeView.SelectedItems;
-
-    public ObservableCollection<FileItem> SelectedFiles { get; private set; } = new ObservableCollection<FileItem>();
-
-
-    #region Events
-
-    private void FileSystemObject_AfterExplore(object sender, EventArgs e)
+    public partial class TreeViewFileExplorerCustom : UserControl
     {
-        Cursor = Cursors.Arrow;
-    }
+        private readonly IIconService _iconService;
+        private readonly IFileSystemService _fileSystemService;
+        private readonly TreeViewExplorerViewModel _viewModel;
 
-    private void FileSystemObject_BeforeExplore(object sender, EventArgs e)
-    {
-        Cursor = Cursors.Wait;
-    }
-
-    private void RadTreeView_LoadOnDemand(object sender, Telerik.Windows.RadRoutedEventArgs e)
-    {
-        if (e.OriginalSource is RadTreeViewItem item && item.DataContext is FileSystemObjectInfo fso)
+        public TreeViewFileExplorerCustom() : this(null, null)
         {
-            if (fso.HasDummy())
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TreeViewFileExplorerCustom"/> class.
+        /// </summary>
+        /// <param name="iconService">Optional custom icon service.</param>
+        /// <param name="fileSystemService">Optional custom file system service.</param>
+        public TreeViewFileExplorerCustom(IIconService iconService = null, IFileSystemService fileSystemService = null)
+        {
+            InitializeComponent();
+
+            // Iniettiamo le dipendenze o usiamo quelle di default
+            var shellManager = new ShellManager();
+            _iconService = iconService ?? new IconService(shellManager);
+            _fileSystemService = fileSystemService ?? new FileSystemService();
+            _viewModel = new TreeViewExplorerViewModel(_iconService, _fileSystemService, new EventAggregator());
+            DataContext = _viewModel;
+        }
+
+        private void RadTreeView_DragOver(object sender, DragEventArgs e)
+        {
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                fso.RemoveDummy();
-                fso.ExploreDirectories();
-                fso.ExploreFiles();
+                e.Effects = DragDropEffects.None;
+                e.Handled = true;
+                return;
             }
-        }
-    }
 
-    private void RadTreeView_ItemPrepared(object sender, RadTreeViewItemPreparedEventArgs radTreeViewItemPreparedEventArgs)
-    {
-        // Eventuale logica aggiuntiva durante la preparazione degli elementi
-    }
-
-    #endregion
-
-    #region Methods
-
-    private void InitializeFileSystemObjects()
-    {
-        var drives = DriveInfo.GetDrives();
-        foreach (var drive in drives)
-        {
-            var fileSystemObject = new FileSystemObjectInfo(drive);
-            fileSystemObject.BeforeExplore += FileSystemObject_BeforeExplore;
-            fileSystemObject.AfterExplore += FileSystemObject_AfterExplore;
-            radTreeView.Items.Add(fileSystemObject);
-        }
-        PreSelect(Environment.GetFolderPath(Environment.SpecialFolder.Desktop));
-    }
-
-    private void PreSelect(string path)
-    {
-        if (!Directory.Exists(path))
-        {
-            return;
-        }
-        var driveFileSystemObjectInfo = GetDriveFileSystemObjectInfo(path);
-        if (driveFileSystemObjectInfo != null)
-        {
-            driveFileSystemObjectInfo.IsExpanded = true;
-            PreSelect(driveFileSystemObjectInfo, path);
-        }
-    }
-
-    private void PreSelect(FileSystemObjectInfo fileSystemObjectInfo, string path)
-    {
-        foreach (var childFileSystemObjectInfo in fileSystemObjectInfo.Children)
-        {
-            var isParentPath = IsParentPath(path, childFileSystemObjectInfo.FileSystemInfo.FullName);
-            if (isParentPath)
+            string[] droppedPaths = (string[])e.Data.GetData(DataFormats.FileDrop);
+            foreach (var path in droppedPaths)
             {
-                if (string.Equals(childFileSystemObjectInfo.FileSystemInfo.FullName, path, StringComparison.OrdinalIgnoreCase))
+                if (!_fileSystemService.IsAccessibleAsync(path).Result)
                 {
-                    /* Elemento trovato per la preselezione */
-                    // Seleziona l'elemento nel RadTreeView
-                    var treeViewItem = radTreeView.ItemContainerGenerator.ContainerFromItem(childFileSystemObjectInfo) as RadTreeViewItem;
-                    if (treeViewItem != null)
+                    e.Effects = DragDropEffects.None;
+                    e.Handled = true;
+                    return;
+                }
+            }
+
+            e.Effects = DragDropEffects.Move | DragDropEffects.Copy;
+            e.Handled = true;
+        }
+
+        private async void RadTreeView_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] droppedPaths = (string[])e.Data.GetData(DataFormats.FileDrop);
+
+                var treeView = sender as Telerik.Windows.Controls.RadTreeView;
+                var targetItem = treeView.InputHitTest(e.GetPosition(treeView)) as Telerik.Windows.Controls.RadTreeViewItem;
+
+                if (targetItem != null)
+                {
+                    var targetViewModel = targetItem.DataContext as IFileSystemObjectViewModel;
+                    if (targetViewModel != null && targetViewModel is DirectoryViewModel targetDirectory)
                     {
-                        treeViewItem.IsSelected = true;
-                        treeViewItem.BringIntoView();
+                        foreach (var path in droppedPaths)
+                        {
+                            string fileName = System.IO.Path.GetFileName(path);
+                            string destPath = System.IO.Path.Combine(targetDirectory.Path, fileName);
+
+                            try
+                            {
+                                if (System.IO.Directory.Exists(path))
+                                {
+                                    System.IO.Directory.Move(path, destPath);
+                                }
+                                else if (System.IO.File.Exists(path))
+                                {
+                                    System.IO.File.Move(path, destPath);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Errore nello spostare {fileName}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                        }
+
+                        // Refresh la directory target
+                        await Task.Run(() => targetDirectory.ExploreAsync());
                     }
                 }
-                else
-                {
-                    childFileSystemObjectInfo.IsExpanded = true;
-                    PreSelect(childFileSystemObjectInfo, path);
-                }
             }
         }
     }
-
-
-    #endregion
-
-    #region Helpers
-
-    private FileSystemObjectInfo GetDriveFileSystemObjectInfo(string path)
-    {
-        var directory = new DirectoryInfo(path);
-        var drive = DriveInfo
-            .GetDrives()
-            .FirstOrDefault(d => d.RootDirectory.FullName.Equals(directory.Root.FullName, StringComparison.OrdinalIgnoreCase));
-        return GetDriveFileSystemObjectInfo(drive);
-    }
-
-    private FileSystemObjectInfo GetDriveFileSystemObjectInfo(DriveInfo drive)
-    {
-        foreach (var fso in radTreeView.Items.OfType<FileSystemObjectInfo>())
-        {
-            if (fso.FileSystemInfo.FullName.Equals(drive.RootDirectory.FullName, StringComparison.OrdinalIgnoreCase))
-            {
-                return fso;
-            }
-        }
-        return null;
-    }
-
-    private bool IsParentPath(string path, string targetPath)
-    {
-        return path.StartsWith(targetPath, StringComparison.OrdinalIgnoreCase);
-    }
-
-    #endregion
-
-    private void OnItemChecked(object sender, RoutedEventArgs e)
-    {
-        if (sender is CheckBox checkBox && checkBox.DataContext is FileSystemObjectInfo item)
-        {
-            UpdateSelectedFiles(item, true);
-        }
-    }
-
-    private void OnItemUnchecked(object sender, RoutedEventArgs e)
-    {
-        if (sender is CheckBox checkBox && checkBox.DataContext is FileSystemObjectInfo item)
-        {
-            UpdateSelectedFiles(item, false);
-        }
-    }
-
-    private static void UpdateSelectionState(FileSystemObjectInfo item, bool isSelected)
-    {
-        item.IsSelected = isSelected;
-
-        // Seleziona o deseleziona ricorsivamente tutti i figli
-        foreach (var child in item.Children)
-        {
-            UpdateSelectionState(child, isSelected);
-        }
-    }
-
-    private void UpdateSelectedFiles(FileSystemObjectInfo item, bool isSelected)
-    {
-        if (isSelected)
-        {
-            if (item.FileSystemInfo is FileInfo fileInfo)
-            {
-                SelectedFiles.Add(new FileItem
-                {
-                    Name = fileInfo.Name,
-                    Path = fileInfo.FullName,
-                    IsFolder = false
-                });
-            }
-            else if (item.FileSystemInfo is DirectoryInfo dirInfo)
-            {
-                SelectedFiles.Add(new FileItem
-                {
-                    Name = dirInfo.Name,
-                    Path = dirInfo.FullName,
-                    IsFolder = true
-                });
-            }
-        }
-        else
-        {
-            var existingItem = SelectedFiles.FirstOrDefault(f => f.Path.Equals(item.FileSystemInfo.FullName, StringComparison.OrdinalIgnoreCase));
-            if (existingItem != null)
-            {
-                SelectedFiles.Remove(existingItem);
-            }
-        }
-
-        // Sollevare un evento per notificare i cambiamenti
-        OnSelectedFilesChanged();
-    }
-
-    // Evento per notificare i cambiamenti in SelectedFiles
-    public event EventHandler SelectedFilesChanged;
-
-    protected virtual void OnSelectedFilesChanged()
-    {
-        SelectedFilesChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    // Modificare i metodi OnItemChecked e OnItemUnchecked per aggiornare SelectedFiles
 }

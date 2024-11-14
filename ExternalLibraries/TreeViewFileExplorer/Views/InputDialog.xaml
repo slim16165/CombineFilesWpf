@@ -1,0 +1,18 @@
+﻿<Window x:Class="TreeViewFileExplorer.Views.InputDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Inserisci Nuovo Nome" Height="150" Width="400" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Text="Inserisci il nuovo nome:" Grid.Row="0" Margin="0,0,0,5"/>
+        <TextBox x:Name="InputTextBox" Grid.Row="1" Height="25"/>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="OK" Width="75" Margin="0,0,5,0" IsDefault="True" Click="OkButton_Click"/>
+            <Button Content="Annulla" Width="75" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

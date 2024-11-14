@@ -4,6 +4,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
 using TreeViewFileExplorer.Model;
+using TreeViewFileExplorer.ViewModels;
 
 namespace CombineFilesWpf.Controls
 {
@@ -41,7 +42,7 @@ namespace CombineFilesWpf.Controls
         {
             // Aggiorna la collezione SelectedFiles nel FileListControl
             SelectedFiles.Clear();
-            foreach (var file in treeViewFileExplorer.SelectedFiles)
+            foreach (var file in (treeViewFileExplorer.DataContext as TreeViewExplorerViewModel)?.SelectedFiles)
             {
                 SelectedFiles.Add(file);
             }
