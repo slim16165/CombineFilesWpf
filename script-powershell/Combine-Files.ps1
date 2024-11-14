@@ -1,73 +1,91 @@
 # Combine-Files.ps1
 <#
 .SYNOPSIS
-Combina il contenuto di più file o stampa i nomi dei file in base alle opzioni.
+Combina il contenuto di più file o stampa i nomi dei file in base alle opzioni, con supporto per preset predefiniti.
 
 .DESCRIPTION
 Questa funzione permette di combinare file o stampare i loro nomi, basandosi su una lista specifica, estensioni o espressioni regolari.
-Può operare nella cartella corrente e, opzionalmente, nelle sottocartelle.
-Supporta l'esclusione di file o cartelle specifici e offre opzioni avanzate di filtraggio.
+Supporta l'uso di preset predefiniti per configurazioni comuni, come il preset 'CSharp', e permette di estendere o sovrascrivere tali preset con parametri aggiuntivi.
+Include miglioramenti nella gestione delle esclusioni e un'interfaccia utente migliorata per una migliore esperienza d'uso.
+
+.PARAMETER Preset
+Nome del preset da utilizzare. Esempi: 'CSharp'.
+
+.PARAMETER ListPresets
+Elenca i preset disponibili.
 
 .PARAMETER Mode
-La modalità di selezione dei file. Valori possibili: 'list', 'extensions', 'regex'.
+La modalità di selezione dei file: 'list', 'extensions', 'regex'.
 
 .PARAMETER FileList
-(Opzionale) Array di nomi di file da combinare. Utilizzato quando la modalità è 'list'.
+(Array) Nomi di file da combinare. Utilizzato quando la modalità è 'list'.
 
 .PARAMETER Extensions
-(Opzionale) Array di estensioni di file da includere (es. '.xaml', '.cs'). Utilizzato quando la modalità è 'extensions'.
+(Array) Estensioni di file da includere (es. '.xaml', '.cs'). Utilizzato quando la modalità è 'extensions'.
 
 .PARAMETER RegexPatterns
-(Opzionale) Array di pattern regex per selezionare i file. Utilizzato quando la modalità è 'regex'.
+(Array) Pattern regex per selezionare i file. Utilizzato quando la modalità è 'regex'.
 
 .PARAMETER OutputFile
-(Opzionale) Percorso del file di output. Default: 'CombinedFile.txt' nella cartella corrente.
+Percorso del file di output. Default: 'CombinedFile.txt' nella cartella corrente.
 
 .PARAMETER Recurse
-(Opzionale) Indica se cercare anche nelle sottocartelle. Default: $false.
+Indica se cercare anche nelle sottocartelle.
 
 .PARAMETER FileNamesOnly
-(Opzionale) Indica se stampare solo i nomi dei file invece che anche il contenuto.
+Indica se stampare solo i nomi dei file invece che anche il contenuto.
 
 .PARAMETER OutputToConsole
-(Opzionale) Indica se stampare a video invece che creare un file.
+Indica se stampare a video invece che creare un file.
 
 .PARAMETER ExcludePaths
-(Opzionale) Array di percorsi di file o cartelle da escludere.
+(Array) Percorsi di file o cartelle da escludere.
 
 .PARAMETER OutputEncoding
-(Opzionale) Encoding del file di output. Default: UTF8. Valori possibili: 'UTF8', 'ASCII', 'UTF7', 'UTF32', 'Unicode', 'Default'.
+Encoding del file di output. Default: UTF8. Valori possibili: 'UTF8', 'ASCII', 'UTF7', 'UTF32', 'Unicode', 'Default'.
 
 .PARAMETER OutputFormat
-(Opzionale) Formato del file di output: 'txt', 'csv', 'json'. Default: 'txt'.
+Formato del file di output: 'txt', 'csv', 'json'. Default: 'txt'.
 
 .PARAMETER MinDate
-(Opzionale) Data minima per i file da includere.
+Data minima per i file da includere.
 
 .PARAMETER MaxDate
-(Opzionale) Data massima per i file da includere.
+Data massima per i file da includere.
 
 .PARAMETER MinSize
-(Opzionale) Dimensione minima dei file (es. '1MB').
+Dimensione minima dei file (es. '1MB').
 
 .PARAMETER MaxSize
-(Opzionale) Dimensione massima dei file (es. '10MB').
+Dimensione massima dei file (es. '10MB').
 
 .EXAMPLE
-.\Combine-Files.ps1 -Mode 'extensions' -Extensions '.cs' -OutputFile 'CombinedCSFiles.txt' -Recurse
+.\Combine-Files.ps1 -Preset 'CSharp'
 
-Combina tutti i file con estensione .cs nella cartella corrente e nelle sottocartelle, salvando il risultato in 'CombinedCSFiles.txt'.
+Combina tutti i file con estensione .cs e .xaml nelle cartelle correnti e sottocartelle, escludendo 'Properties', 'obj', 'bin', salvando in 'CombinedFile.cs'.
 
 .EXAMPLE
-.\Combine-Files.ps1 -Mode 'list' -FileList 'file1.txt','file2.txt' -FileNamesOnly -OutputToConsole
+.\Combine-Files.ps1 -Preset 'CSharp' -ExcludePaths 'AdditionalFolder'
 
-Stampa a video i nomi di 'file1.txt' e 'file2.txt' nella cartella corrente.
+Combina i file secondo il preset 'CSharp' ed esclude anche 'AdditionalFolder'.
+
+.EXAMPLE
+.\Combine-Files.ps1 -ListPresets
+
+Elenca tutti i preset disponibili.
 
 #>
 
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory = $true, HelpMessage = "La modalità di selezione dei file: 'list', 'extensions', 'regex'.")]
+    [Parameter(Mandatory = $false, HelpMessage = "Nome del preset da utilizzare.")]
+    [ValidateNotNullOrEmpty()]
+    [string]$Preset,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Elenca i preset disponibili.")]
+    [switch]$ListPresets,
+
+    [Parameter(Mandatory = $false, HelpMessage = "La modalità di selezione dei file: 'list', 'extensions', 'regex'.")]
     [ValidateSet("list", "extensions", "regex")]
     [string]$Mode,
 
@@ -116,6 +134,18 @@ param (
     [string]$MaxSize
 )
 
+# Definizione dei preset
+$Presets = @{
+    "CSharp" = @{
+        Mode = 'extensions'
+        Extensions = '.cs', '.xaml'
+        OutputFile = 'CombinedFile.cs'
+        Recurse = $true
+        ExcludePaths = 'Properties', 'obj', 'bin'
+    }
+    # Puoi aggiungere altri preset qui
+}
+
 # Funzioni ausiliarie
 
 function Write-Log {
@@ -160,7 +190,7 @@ function Get-FilesToProcess {
                 $filePath = Join-Path -Path $sourcePath -ChildPath $file
                 $resolved = Resolve-Path -Path $filePath -ErrorAction SilentlyContinue
                 if ($resolved -and (Test-Path $resolved.Path -PathType Leaf)) {
-                    if (-not ($fullExcludePaths -contains $resolved.Path)) {
+                    if (-not (Is-PathExcluded $resolved.Path $fullExcludePaths)) {
                         $files += $resolved.Path
                         Write-Log "File aggiunto dalla lista: $($resolved.Path)"
                     }
@@ -178,7 +208,7 @@ function Get-FilesToProcess {
             foreach ($ext in $Extensions) {
                 $ext = if ($ext.StartsWith('.')) { $ext } else { ".$ext" }
                 Write-Log "Ricerca per estensione: $ext"
-                $matched = Get-ChildItem -Path $sourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+                $matched = Get-ChildItem -Path $sourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue | Where-Object { -not (Is-PathExcluded $_.FullName $fullExcludePaths) } | Select-Object -ExpandProperty FullName
                 $files += $matched
                 Write-Log "$($matched.Count) file trovati con estensione $ext."
             }
@@ -190,8 +220,10 @@ function Get-FilesToProcess {
             foreach ($file in $allFiles) {
                 foreach ($pattern in $RegexPatterns) {
                     if ($file.Name -match $pattern) {
-                        $files += $file.FullName
-                        Write-Log "File corrispondente al pattern '$pattern': $($file.FullName)"
+                        if (-not (Is-PathExcluded $file.FullName $fullExcludePaths)) {
+                            $files += $file.FullName
+                            Write-Log "File corrispondente al pattern '$pattern': $($file.FullName)"
+                        }
                         break  # Evita di aggiungere lo stesso file più volte se corrisponde a più pattern
                     }
                 }
@@ -231,6 +263,22 @@ function Write-OutputOrFile {
     }
 }
 
+function Is-PathExcluded {
+    param (
+        [string]$FilePath,
+        [string[]]$ExcludedPaths
+    )
+    foreach ($excluded in $ExcludedPaths) {
+        if ($FilePath -ieq $excluded) {
+            return $true
+        }
+        if ($FilePath.StartsWith($excluded + [IO.Path]::DirectorySeparatorChar, [System.StringComparison]::InvariantCultureIgnoreCase)) {
+            return $true
+        }
+    }
+    return $false
+}
+
 # Inizio dello script
 
 # Definisci un percorso per il log
@@ -244,7 +292,60 @@ try {
 }
 catch {
     Write-Error "Impossibile creare il file di log: $logFile"
+    Write-Host "Impossibile creare il file di log: $logFile" -ForegroundColor Red
     return
+}
+
+# Funzione per visualizzare messaggi colorati
+function Show-Message {
+    param (
+        [string]$Message,
+        [string]$Color = "White"
+    )
+    Write-Host $Message -ForegroundColor $Color
+}
+
+# Gestione del parametro -ListPresets
+if ($ListPresets) {
+    Show-Message "Preset disponibili:" "Cyan"
+    foreach ($preset in $Presets.Keys) {
+        Show-Message "- $preset" "Green"
+    }
+    Write-Log "Elenco dei preset richiesto dall'utente."
+    return
+}
+
+# Applicazione dei preset
+if ($Preset) {
+    if ($Presets.ContainsKey($Preset)) {
+        $presetParams = $Presets[$Preset]
+        foreach ($key in $presetParams.Keys) {
+            if (-not $PSBoundParameters.ContainsKey($key)) {
+                if ($presetParams[$key] -is [System.Collections.IEnumerable] -and -not ($presetParams[$key] -is [string])) {
+                    # Se il parametro è un array, unisci con eventuali valori già presenti
+                    if ($key -eq 'ExcludePaths') {
+                        $ExcludePaths += $presetParams[$key]
+                    }
+                    elseif ($key -eq 'Extensions') {
+                        $Extensions += $presetParams[$key]
+                    }
+                    # Aggiungi altri array se necessario
+                }
+                else {
+                    # Imposta il valore del parametro se non è un array
+                    Set-Variable -Name $key -Value $presetParams[$key]
+                }
+                Write-Log "Applicato preset '$Preset': $key = $($presetParams[$key])"
+                Show-Message "Applicato preset '$Preset': $key = $($presetParams[$key])" "Yellow"
+            }
+        }
+    }
+    else {
+        Write-Error "Preset '$Preset' non trovato."
+        Write-Log "Errore: Preset '$Preset' non trovato." "ERROR"
+        Show-Message "Errore: Preset '$Preset' non trovato." "Red"
+        return
+    }
 }
 
 Write-Log "Percorso sorgente: $sourcePath"
@@ -267,12 +368,15 @@ if ($ExcludePaths) {
         }
         $resolvedPaths = Resolve-Path -Path $fullPath -ErrorAction SilentlyContinue
         if ($resolvedPaths) {
-            $fullExcludePaths += $resolvedPaths.Path
-            Write-Log "Percorso escluso aggiunto: $($resolvedPaths.Path)"
+            foreach ($resolved in $resolvedPaths) {
+                $fullExcludePaths += $resolved.Path
+                Write-Log "Percorso escluso aggiunto: $($resolved.Path)"
+            }
         }
         else {
             Write-Warning "Percorso di esclusione non trovato: $fullPath"
             Write-Log "Percorso di esclusione non trovato: $fullPath" "WARNING"
+            Show-Message "Attenzione: Percorso di esclusione non trovato: $fullPath" "Magenta"
         }
     }
     Write-Log "Totale percorsi esclusi: $($fullExcludePaths.Count)"
@@ -283,18 +387,21 @@ if ($ExcludePaths) {
 if ($Mode -eq 'list' -and -not $FileList) {
     Write-Error "La modalità 'list' richiede il parametro -FileList."
     Write-Log "Errore: Modalità 'list' senza -FileList." "ERROR"
+    Show-Message "Errore: La modalità 'list' richiede il parametro -FileList." "Red"
     return
 }
 
 if ($Mode -eq 'extensions' -and -not $Extensions) {
     Write-Error "La modalità 'extensions' richiede il parametro -Extensions."
     Write-Log "Errore: Modalità 'extensions' senza -Extensions." "ERROR"
+    Show-Message "Errore: La modalità 'extensions' richiede il parametro -Extensions." "Red"
     return
 }
 
 if ($Mode -eq 'regex' -and -not $RegexPatterns) {
     Write-Error "La modalità 'regex' richiede il parametro -RegexPatterns."
     Write-Log "Errore: Modalità 'regex' senza -RegexPatterns." "ERROR"
+    Show-Message "Errore: La modalità 'regex' richiede il parametro -RegexPatterns." "Red"
     return
 }
 
@@ -304,6 +411,7 @@ if ($Mode -eq 'extensions') {
         if (-not $ext.StartsWith('.')) {
             Write-Error "L'estensione '$ext' deve iniziare con un punto."
             Write-Log "Errore: Estensione non valida '$ext'." "ERROR"
+            Show-Message "Errore: L'estensione '$ext' deve iniziare con un punto." "Red"
             return
         }
     }
@@ -315,6 +423,7 @@ if ($ExcludePaths) {
         if (-not (Test-Path $path)) {
             Write-Warning "Percorso di esclusione non trovato: $path"
             Write-Log "Percorso di esclusione non trovato: $path" "WARNING"
+            Show-Message "Attenzione: Percorso di esclusione non trovato: $path" "Magenta"
         }
     }
 }
@@ -327,6 +436,7 @@ $maxSizeBytes = if ($MaxSize) { Convert-SizeToBytes $MaxSize } else { [int64]::M
 $filesToProcess = Get-FilesToProcess -Mode $Mode -FileList $FileList -Extensions $Extensions -RegexPatterns $RegexPatterns -sourcePath $sourcePath -Recurse:$Recurse -fullExcludePaths $fullExcludePaths
 
 Write-Log "Numero iniziale di file da processare: $($filesToProcess.Count)"
+Show-Message "Numero iniziale di file da processare: $($filesToProcess.Count)" "Cyan"
 
 # Filtra i file basati su data e dimensione
 if ($MinDate -or $MaxDate -or $MinSize -or $MaxSize) {
@@ -339,40 +449,28 @@ if ($MinDate -or $MaxDate -or $MinSize -or $MaxSize) {
         $validDate -and $validSize
     }
     Write-Log "Totale file dopo filtraggio per data e dimensione: $($filesToProcess.Count)"
+    Show-Message "Totale file dopo filtraggio per data e dimensione: $($filesToProcess.Count)" "Cyan"
 }
 
 # Filtra nuovamente per escludere eventuali percorsi non gestiti
 if ($fullExcludePaths) {
     $filesToProcess = $filesToProcess | Where-Object {
-        $filePath = $_
-        $isExcluded = $false
-        foreach ($excludePath in $fullExcludePaths) {
-            if (Test-Path $excludePath -PathType Container) {
-                if ($filePath -like "$excludePath*") {
-                    $isExcluded = $true
-                    break
-                }
-            }
-            else {
-                if ($filePath -eq $excludePath) {
-                    $isExcluded = $true
-                    break
-                }
-            }
-        }
-        -not $isExcluded
+        -not (Is-PathExcluded $_ $fullExcludePaths)
     }
     Write-Log "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)"
+    Show-Message "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)" "Cyan"
 }
 
 # Verifica se sono stati trovati file da unire
 if ($filesToProcess.Count -eq 0) {
     Write-Warning "Nessun file trovato per l'unione."
     Write-Log "Nessun file trovato per l'unione." "WARNING"
+    Show-Message "Nessun file trovato per l'unione." "Yellow"
     return
 }
 else {
     Write-Log "Trovati $($filesToProcess.Count) file da processare."
+    Show-Message "Trovati $($filesToProcess.Count) file da processare." "Green"
 }
 
 # Configura l'encoding
@@ -400,9 +498,11 @@ if (-not $OutputToConsole) {
             }
         }
         Write-Log "File di output creato/svuotato: $OutputFile"
+        Show-Message "File di output creato/svuotato: $OutputFile" "Green"
     }
     catch {
         Write-Log "Impossibile creare o scrivere nel file di output: $OutputFile - $_" "ERROR"
+        Show-Message "Errore: Impossibile creare o scrivere nel file di output: $OutputFile" "Red"
         return
     }
 }
@@ -454,6 +554,7 @@ foreach ($filePath in $filesToProcess) {
         catch {
             Write-Warning "Impossibile leggere il file: $filePath"
             Write-Log "Impossibile leggere il file: $filePath - $_" "WARNING"
+            Show-Message "Attenzione: Impossibile leggere il file: $filePath" "Magenta"
         }
     }
 }
@@ -461,9 +562,9 @@ foreach ($filePath in $filesToProcess) {
 # Messaggio di completamento
 if (-not $OutputToConsole) {
     Write-Log "Operazione completata. Controlla il file '$OutputFile'."
-    Write-Output "Operazione completata. Controlla il file '$OutputFile'."
+    Show-Message "Operazione completata. Controlla il file '$OutputFile'." "Green"
 }
 else {
     Write-Log "Operazione completata con output a console."
-    Write-Output "Operazione completata con output a console."
+    Show-Message "Operazione completata con output a console." "Green"
 }
