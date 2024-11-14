@@ -39,6 +39,12 @@
     <StartupObject />
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.WindowsAPICodePack, Version=1.1.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAPICodePack-Core.1.1.2\lib\Microsoft.WindowsAPICodePack.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAPICodePack.Shell, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\WindowsAPICodePack-Shell.1.1.1\lib\Microsoft.WindowsAPICodePack.Shell.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Drawing" />
@@ -96,9 +102,10 @@
     <Compile Include="Enums\ShellAttribute.cs" />
     <Compile Include="Events\EventAggregator.cs" />
     <Compile Include="Events\Events.cs" />
-    <Compile Include="Manager\FileManager.cs" />
+    <Compile Include="Views\InputDialog.xaml.cs">
+      <DependentUpon>InputDialog.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Interop.cs" />
-    <Compile Include="Manager\FolderManager.cs" />
     <Compile Include="Model\RelayCommand.cs" />
     <Compile Include="Model\FileItem.cs" />
     <Compile Include="Services\IconCacheService.cs" />
@@ -118,6 +125,10 @@
     <Compile Include="ViewModels\FileViewModel.cs" />
     <Compile Include="ViewModels\IFileSystemObjectViewModel.cs" />
     <Compile Include="ViewModels\TreeViewExplorerViewModel.cs" />
+    <Page Include="Views\InputDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="TreeViewFileExplorerCustom.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -146,6 +157,7 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
     <None Include="NLog.config" />
+    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

@@ -20,7 +20,7 @@ namespace TreeViewFileExplorer.Managers
         /// <param name="state">The state of the item (Open or Closed for folders).</param>
         /// <returns>An <see cref="Icon"/> representing the item's icon.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the icon cannot be retrieved.</exception>
-        public static Icon GetIcon(string path, ItemType type, IconSize iconSize, ItemState state)
+        public Icon GetIcon(string path, ItemType type, IconSize iconSize, ItemState state)
         {
             ShellFileInfo fileInfo = default;
             try

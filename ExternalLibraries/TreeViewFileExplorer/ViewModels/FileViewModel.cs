@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using TreeViewFileExplorer.Enums;
 using TreeViewFileExplorer.Services;
@@ -39,8 +40,9 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
-        public override void Explore()
+        public override Task ExploreAsync()
         {
+            return default!;
             // Files do not have child items.
         }
     }

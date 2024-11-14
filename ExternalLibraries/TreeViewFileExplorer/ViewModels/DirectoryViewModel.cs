@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using TreeViewFileExplorer.Enums;
 using TreeViewFileExplorer.Events;
@@ -42,10 +43,12 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
-        public override async void Explore()
+        public override async Task ExploreAsync()
         {
             if (Children.Count == 1 && Children[0] is DummyViewModel)
             {
+                _eventAggregator.Publish(new BeforeExploreEvent(Path));
+
                 Children.Clear();
 
                 var directories = await FileSystemService.GetDirectoriesAsync(Path);
@@ -66,10 +69,11 @@ namespace TreeViewFileExplorer.ViewModels
 
                 ImageSource = IconService.GetIcon(Path, ItemType.Folder, IconSize.Small, ItemState.Open);
 
-                // Pubblica l'evento dopo aver esplorato
                 _eventAggregator.Publish(new AfterExploreEvent(Path));
             }
         }
+
+
 
         private void OnChildPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {

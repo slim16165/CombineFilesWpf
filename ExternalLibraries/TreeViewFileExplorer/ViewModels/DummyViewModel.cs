@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Media;
 
 namespace TreeViewFileExplorer.ViewModels
@@ -11,10 +12,9 @@ namespace TreeViewFileExplorer.ViewModels
         public string Path => string.Empty;
         public bool IsSelected { get; set; }
         public bool IsExpanded { get; set; }
-
-        public void Explore()
+        public Task ExploreAsync()
         {
-            // Nessuna azione
+            return default!;
         }
     }
 }

@@ -38,7 +38,7 @@ namespace TreeViewFileExplorer.Services
 
             try
             {
-                using (var icon = ShellManager.GetIcon(path, type, size, state))
+                using (var icon = _shellManager.GetIcon(path, type, size, state))
                 {
                     int width = size == IconSize.Small ? 16 : 32;
                     int height = size == IconSize.Small ? 16 : 32;

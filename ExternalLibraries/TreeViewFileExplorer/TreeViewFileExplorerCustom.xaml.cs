@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using TreeViewFileExplorer.Events;
@@ -16,6 +17,10 @@ namespace TreeViewFileExplorer
         private readonly IIconService _iconService;
         private readonly IFileSystemService _fileSystemService;
         private readonly TreeViewExplorerViewModel _viewModel;
+
+        public TreeViewFileExplorerCustom() : this(null, null)
+        {
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TreeViewFileExplorerCustom"/> class.
@@ -58,7 +63,7 @@ namespace TreeViewFileExplorer
             e.Handled = true;
         }
 
-        private void RadTreeView_Drop(object sender, DragEventArgs e)
+        private async void RadTreeView_Drop(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
@@ -90,12 +95,12 @@ namespace TreeViewFileExplorer
                             }
                             catch (Exception ex)
                             {
-                                MessageBox.Show($"Errore nel cancellare {fileName}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
+                                MessageBox.Show($"Errore nello spostare {fileName}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                             }
                         }
 
                         // Refresh la directory target
-                        targetDirectory.Explore();
+                        await Task.Run(() => targetDirectory.ExploreAsync());
                     }
                 }
             }

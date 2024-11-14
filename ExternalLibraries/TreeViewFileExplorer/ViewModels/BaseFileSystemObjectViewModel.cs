@@ -4,11 +4,15 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using TreeViewFileExplorer.Model;
 using TreeViewFileExplorer.Services;
+using TreeViewFileExplorer.Views;
 
 namespace TreeViewFileExplorer.ViewModels
 {
@@ -64,7 +68,7 @@ namespace TreeViewFileExplorer.ViewModels
                     OnPropertyChanged();
                     if (_isExpanded)
                     {
-                        Explore();
+                        ExploreAsync();
                     }
                 }
             }
@@ -111,7 +115,7 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
-        protected virtual void Copy(object parameter)
+        protected void Copy(object parameter)
         {
             // Implementa la logica per copiare l'oggetto
             string destinationPath = PromptForDestinationPath();
@@ -137,8 +141,7 @@ namespace TreeViewFileExplorer.ViewModels
                 }
             }
         }
-
-
+    
         protected virtual void Move(object parameter)
         {
             // Implementa la logica per spostare l'oggetto
@@ -164,15 +167,23 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
-        private string PromptForDestinationPath()
+        protected string PromptForDestinationPath()
         {
-            // Implementa un dialogo per selezionare la destinazione
-            // Per semplicità, restituisce una stringa fissa o usa un dialogo di sistema
-            return "C:\\DestinationPath"; // Placeholder
+            var dialog = new CommonOpenFileDialog
+            {
+                IsFolderPicker = true,
+                Title = "Seleziona la cartella di destinazione"
+            };
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                return dialog.FileName;
+            }
+
+            return string.Empty;
         }
 
-
-        public abstract void Explore();
+        public abstract Task ExploreAsync();
 
         protected virtual void Open(object parameter)
         {
@@ -198,15 +209,31 @@ namespace TreeViewFileExplorer.ViewModels
                 {
                     System.IO.File.Delete(Path);
                 }
-                // Optionally remove from parent collection
+
+                // Rimuovi dall'elenco dei figli del genitore
+                var parent = FindParentViewModel();
+                if (parent != null)
+                {
+                    parent.Children.Remove(this);
+                }
+
+                MessageBox.Show($"{Name} è stato eliminato con successo.", "Successo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                // Log or handle exception
+                MessageBox.Show($"Errore nell'eliminare {Name}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        protected virtual void Rename(object parameter)
+        private IFileSystemObjectViewModel FindParentViewModel()
+        {
+            // Implementa la logica per trovare il genitore di questo ViewModel
+            // Potrebbe essere necessario passare una riferimento al genitore nel costruttore
+            return null;
+        }
+
+
+        protected void Rename(object parameter)
         {
             string newName = PromptForNewName();
             if (!string.IsNullOrWhiteSpace(newName) && IsValidName(newName))
@@ -230,7 +257,8 @@ namespace TreeViewFileExplorer.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.Format("Errore nel renaming", Name, ex.Message), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    // Correzione dell'errore nell'uso di string.Format
+                    MessageBox.Show($"Errore nel rinominare {Name}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             else
@@ -239,13 +267,17 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
-
-
-        private string PromptForNewName()
+        protected string PromptForNewName()
         {
-            // Implement a dialog to get the new name from the user
-            // For simplicity, returning a placeholder
-            return "NewName";
+            var inputDialog = new InputDialog("Inserisci il nuovo nome:", "Rinomina");
+            inputDialog.Owner = Application.Current.MainWindow; // Imposta la finestra principale come proprietaria
+
+            if (inputDialog.ShowDialog() == true)
+            {
+                return inputDialog.ResponseText;
+            }
+
+            return string.Empty;
         }
 
         private bool IsValidName(string name)
