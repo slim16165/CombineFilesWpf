@@ -89,22 +89,35 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BaseObject.cs" />
     <Compile Include="Enums\IconSize.cs" />
     <Compile Include="Enums\ItemState.cs" />
     <Compile Include="Enums\ItemType.cs" />
     <Compile Include="Enums\FileAttribute.cs" />
     <Compile Include="Enums\ShellAttribute.cs" />
+    <Compile Include="Events\EventAggregator.cs" />
+    <Compile Include="Events\Events.cs" />
     <Compile Include="Manager\FileManager.cs" />
     <Compile Include="Interop.cs" />
     <Compile Include="Manager\FolderManager.cs" />
+    <Compile Include="Model\RelayCommand.cs" />
     <Compile Include="Model\FileItem.cs" />
-    <Compile Include="ProperyNotifier.cs" />
-    <Compile Include="ShellClasses\DummyFileSystemObjectInfo.cs" />
-    <Compile Include="ShellClasses\FileSystemObjectInfo.cs" />
+    <Compile Include="Services\IconCacheService.cs" />
+    <Compile Include="Services\IIconService.cs" />
+    <Compile Include="ShellClasses\FileSystemEventHandler.cs" />
+    <Compile Include="ViewModels\BaseFileSystemObjectViewModel.cs" />
+    <Compile Include="ViewModels\BaseViewModel.cs" />
+    <Compile Include="ViewModels\DirectoryViewModel.cs" />
+    <Compile Include="ViewModels\DummyViewModel.cs" />
+    <Compile Include="ViewModels\FileSystemItemTemplateSelector.cs" />
     <Compile Include="Manager\ShellManager.cs" />
+    <Compile Include="Services\FileSystemService.cs" />
+    <Compile Include="Services\IconService.cs" />
     <Compile Include="ShellClasses\IFileSystemObjectInfo.cs" />
+    <Compile Include="Services\IFileSystemService.cs" />
     <Compile Include="Structs\ShellFileInfo.cs" />
+    <Compile Include="ViewModels\FileViewModel.cs" />
+    <Compile Include="ViewModels\IFileSystemObjectViewModel.cs" />
+    <Compile Include="ViewModels\TreeViewExplorerViewModel.cs" />
     <Page Include="TreeViewFileExplorerCustom.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -132,10 +145,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="NLog.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="README.md" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

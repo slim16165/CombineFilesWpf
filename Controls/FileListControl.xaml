@@ -11,7 +11,7 @@
     <Grid>
         <!-- Includi il controllo personalizzato -->
         <treeViewFileExplorer:TreeViewFileExplorerCustom x:Name="treeViewFileExplorer" 
-                                          SelectedFilesChanged="TreeViewFileExplorer_SelectedFilesChanged" />
+                                           />
 
         <!-- ListBox per mostrare i file selezionati -->
         <ListBox ItemsSource="{Binding SelectedFiles, ElementName=treeViewFileExplorer}" 

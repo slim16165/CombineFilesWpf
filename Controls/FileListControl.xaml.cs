@@ -41,7 +41,7 @@ namespace CombineFilesWpf.Controls
         {
             // Aggiorna la collezione SelectedFiles nel FileListControl
             SelectedFiles.Clear();
-            foreach (var file in treeViewFileExplorer.SelectedFiles)
+            foreach (var file in treeViewFileExplorer.DataContext.SelectedFiles)
             {
                 SelectedFiles.Add(file);
             }

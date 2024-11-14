@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Media;
 
@@ -11,5 +12,7 @@ public interface IFileSystemObjectInfo
     bool IsSelected { get; set; }
     bool IsExpanded { get; set; }
     FileSystemInfo FileSystemInfo { get; }
+    EventHandler<EventArgs> BeforeExplore { get; set; }
     void Explore();
+    event EventHandler<EventArgs> AfterExplore;
 }
