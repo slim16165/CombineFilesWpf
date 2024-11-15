@@ -39,7 +39,13 @@ Indica se stampare solo i nomi dei file invece che anche il contenuto.
 Indica se stampare a video invece che creare un file.
 
 .PARAMETER ExcludePaths
-(Array) Percorsi di file o cartelle da escludere.
+(Array) Percorsi di cartelle da escludere.
+
+.PARAMETER ExcludeFiles
+(Array) Nomi di file da escludere.
+
+.PARAMETER ExcludeFilePatterns
+(Array) Pattern regex per escludere i file.
 
 .PARAMETER OutputEncoding
 Encoding del file di output. Default: UTF8. Valori possibili: 'UTF8', 'ASCII', 'UTF7', 'UTF32', 'Unicode', 'Default'.
@@ -110,8 +116,14 @@ param (
     [Parameter(Mandatory = $false, HelpMessage = "Indica se stampare a video invece che creare un file.")]
     [switch]$OutputToConsole,
 
-    [Parameter(Mandatory = $false, HelpMessage = "Array di percorsi di file o cartelle da escludere.")]
+    [Parameter(Mandatory = $false, HelpMessage = "Array di percorsi di cartelle da escludere.")]
     [string[]]$ExcludePaths,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Array di nomi di file da escludere.")]
+    [string[]]$ExcludeFiles,
+
+    [Parameter(Mandatory = $false, HelpMessage = "Array di pattern regex per escludere i file.")]
+    [string[]]$ExcludeFilePatterns,
 
     [Parameter(Mandatory = $false, HelpMessage = "Encoding del file di output. Default: UTF8.")]
     [ValidateSet("UTF8", "ASCII", "UTF7", "UTF32", "Unicode", "Default")]
@@ -142,6 +154,7 @@ $Presets = @{
         OutputFile = 'CombinedFile.cs'
         Recurse = $true
         ExcludePaths = 'Properties', 'obj', 'bin'
+        ExcludeFilePatterns = '.*\.g\.cs$', '.*\.designer\.cs$'
     }
     # Puoi aggiungere altri preset qui
 }
@@ -180,7 +193,9 @@ function Get-FilesToProcess {
         [string[]]$RegexPatterns,
         [string]$sourcePath,
         [switch]$Recurse,
-        [string[]]$fullExcludePaths
+        [string[]]$fullExcludePaths,
+        [string[]]$fullExcludeFiles,
+        [string[]]$fullExcludeFilePatterns
     )
 
     $files = @()
@@ -190,7 +205,7 @@ function Get-FilesToProcess {
                 $filePath = Join-Path -Path $sourcePath -ChildPath $file
                 $resolved = Resolve-Path -Path $filePath -ErrorAction SilentlyContinue
                 if ($resolved -and (Test-Path $resolved.Path -PathType Leaf)) {
-                    if (-not (Is-PathExcluded $resolved.Path $fullExcludePaths)) {
+                    if (-not (Is-PathExcluded $_.Path $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)) {
                         $files += $resolved.Path
                         Write-Log "File aggiunto dalla lista: $($resolved.Path)"
                     }
@@ -208,7 +223,7 @@ function Get-FilesToProcess {
             foreach ($ext in $Extensions) {
                 $ext = if ($ext.StartsWith('.')) { $ext } else { ".$ext" }
                 Write-Log "Ricerca per estensione: $ext"
-                $matched = Get-ChildItem -Path $sourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue | Where-Object { -not (Is-PathExcluded $_.FullName $fullExcludePaths) } | Select-Object -ExpandProperty FullName
+                $matched = Get-ChildItem -Path $sourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue | Where-Object { -not (Is-PathExcluded $_.FullName $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns) } | Select-Object -ExpandProperty FullName
                 $files += $matched
                 Write-Log "$($matched.Count) file trovati con estensione $ext."
             }
@@ -220,7 +235,7 @@ function Get-FilesToProcess {
             foreach ($file in $allFiles) {
                 foreach ($pattern in $RegexPatterns) {
                     if ($file.Name -match $pattern) {
-                        if (-not (Is-PathExcluded $file.FullName $fullExcludePaths)) {
+                        if (-not (Is-PathExcluded $file.FullName $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)) {
                             $files += $file.FullName
                             Write-Log "File corrispondente al pattern '$pattern': $($file.FullName)"
                         }
@@ -266,7 +281,9 @@ function Write-OutputOrFile {
 function Is-PathExcluded {
     param (
         [string]$FilePath,
-        [string[]]$ExcludedPaths
+        [string[]]$ExcludedPaths,
+        [string[]]$ExcludedFiles,
+        [string[]]$ExcludedFilePatterns
     )
     foreach ($excluded in $ExcludedPaths) {
         if ($FilePath -ieq $excluded) {
@@ -276,6 +293,19 @@ function Is-PathExcluded {
             return $true
         }
     }
+
+    foreach ($excludedFile in $ExcludedFiles) {
+        if ([System.IO.Path]::GetFileName($FilePath) -ieq $excludedFile) {
+            return $true
+        }
+    }
+
+    foreach ($pattern in $ExcludedFilePatterns) {
+        if ($FilePath -match $pattern) {
+            return $true
+        }
+    }
+
     return $false
 }
 
@@ -328,6 +358,9 @@ if ($Preset) {
                     }
                     elseif ($key -eq 'Extensions') {
                         $Extensions += $presetParams[$key]
+                    }
+                    elseif ($key -eq 'ExcludeFilePatterns') {
+                        $ExcludeFilePatterns += $presetParams[$key]
                     }
                     # Aggiungi altri array se necessario
                 }
@@ -382,6 +415,26 @@ if ($ExcludePaths) {
     Write-Log "Totale percorsi esclusi: $($fullExcludePaths.Count)"
 }
 
+# Definisci i file da escludere
+$fullExcludeFiles = @()
+if ($ExcludeFiles) {
+    foreach ($file in $ExcludeFiles) {
+        $fullExcludeFiles += $file
+        Write-Log "File escluso aggiunto: $file"
+    }
+    Write-Log "Totale file esclusi: $($fullExcludeFiles.Count)"
+}
+
+# Definisci i pattern di file da escludere
+$fullExcludeFilePatterns = @()
+if ($ExcludeFilePatterns) {
+    foreach ($pattern in $ExcludeFilePatterns) {
+        $fullExcludeFilePatterns += $pattern
+        Write-Log "Pattern di file escluso aggiunto: $pattern"
+    }
+    Write-Log "Totale pattern di file esclusi: $($fullExcludeFilePatterns.Count)"
+}
+
 # Validazione dei parametri
 
 if ($Mode -eq 'list' -and -not $FileList) {
@@ -417,23 +470,12 @@ if ($Mode -eq 'extensions') {
     }
 }
 
-# Validazione dei percorsi di esclusione
-if ($ExcludePaths) {
-    foreach ($path in $ExcludePaths) {
-        if (-not (Test-Path $path)) {
-            Write-Warning "Percorso di esclusione non trovato: $path"
-            Write-Log "Percorso di esclusione non trovato: $path" "WARNING"
-            Show-Message "Attenzione: Percorso di esclusione non trovato: $path" "Magenta"
-        }
-    }
-}
-
 # Converti le dimensioni in byte
 $minSizeBytes = if ($MinSize) { Convert-SizeToBytes $MinSize } else { 0 }
 $maxSizeBytes = if ($MaxSize) { Convert-SizeToBytes $MaxSize } else { [int64]::MaxValue }
 
 # Ottieni la lista dei file da processare
-$filesToProcess = Get-FilesToProcess -Mode $Mode -FileList $FileList -Extensions $Extensions -RegexPatterns $RegexPatterns -sourcePath $sourcePath -Recurse:$Recurse -fullExcludePaths $fullExcludePaths
+$filesToProcess = Get-FilesToProcess -Mode $Mode -FileList $FileList -Extensions $Extensions -RegexPatterns $RegexPatterns -sourcePath $sourcePath -Recurse:$Recurse -fullExcludePaths $fullExcludePaths -fullExcludeFiles $fullExcludeFiles -fullExcludeFilePatterns $fullExcludeFilePatterns
 
 Write-Log "Numero iniziale di file da processare: $($filesToProcess.Count)"
 Show-Message "Numero iniziale di file da processare: $($filesToProcess.Count)" "Cyan"
@@ -453,9 +495,9 @@ if ($MinDate -or $MaxDate -or $MinSize -or $MaxSize) {
 }
 
 # Filtra nuovamente per escludere eventuali percorsi non gestiti
-if ($fullExcludePaths) {
+if ($fullExcludePaths -or $fullExcludeFiles -or $fullExcludeFilePatterns) {
     $filesToProcess = $filesToProcess | Where-Object {
-        -not (Is-PathExcluded $_ $fullExcludePaths)
+        -not (Is-PathExcluded $_ $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)
     }
     Write-Log "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)"
     Show-Message "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)" "Cyan"
