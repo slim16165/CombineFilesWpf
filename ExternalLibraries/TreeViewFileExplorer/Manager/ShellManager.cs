@@ -54,7 +54,7 @@ namespace TreeViewFileExplorer.Managers
             }
             finally
             {
-                
+
                 NativeMethods.DestroyIcon(fileInfo.hIcon);
             }
         }

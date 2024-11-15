@@ -1,5 +1,5 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿// TreeViewFileExplorerCustom.xaml.cs
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using TreeViewFileExplorer.Events;
@@ -32,10 +32,11 @@ namespace TreeViewFileExplorer
             InitializeComponent();
 
             // Iniettiamo le dipendenze o usiamo quelle di default
+            var eventAggregator = new EventAggregator();
             var shellManager = new ShellManager();
             _iconService = iconService ?? new IconService(shellManager);
-            _fileSystemService = fileSystemService ?? new FileSystemService();
-            _viewModel = new TreeViewExplorerViewModel(_iconService, _fileSystemService, new EventAggregator());
+            _fileSystemService = fileSystemService ?? new FileSystemService(); // Inizializzazione corretta
+            _viewModel = new TreeViewExplorerViewModel(_iconService, _fileSystemService, eventAggregator);
             DataContext = _viewModel;
         }
 
@@ -100,7 +101,7 @@ namespace TreeViewFileExplorer
                         }
 
                         // Refresh la directory target
-                        await Task.Run(() => targetDirectory.ExploreAsync());
+                        await targetDirectory.ExploreAsync();
                     }
                 }
             }

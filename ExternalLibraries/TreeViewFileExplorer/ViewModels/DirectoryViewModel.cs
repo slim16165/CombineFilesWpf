@@ -1,4 +1,7 @@
-﻿using System.IO;
+﻿// DirectoryViewModel.cs
+using System;
+using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using TreeViewFileExplorer.Enums;
@@ -12,21 +15,23 @@ namespace TreeViewFileExplorer.ViewModels
     /// </summary>
     public class DirectoryViewModel : BaseFileSystemObjectViewModel
     {
-        private readonly DirectoryInfo _directoryInfo;
         private ImageSource _imageSource;
         private readonly IEventAggregator _eventAggregator;
+        private readonly bool _showHiddenFiles;
+        private readonly Regex _filterRegex;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DirectoryViewModel"/> class.
         /// </summary>
-        public DirectoryViewModel(DirectoryInfo directoryInfo, IIconService iconService, IFileSystemService fileSystemService, IEventAggregator eventAggregator)
-            : base(iconService, fileSystemService)
+        public DirectoryViewModel(DirectoryInfo directoryInfo, IIconService iconService, IFileSystemService fileSystemService, IEventAggregator eventAggregator, bool showHiddenFiles, Regex filterRegex)
+            : base(iconService, fileSystemService, showHiddenFiles, filterRegex)
         {
-            _directoryInfo = directoryInfo;
             _eventAggregator = eventAggregator;
-            Name = _directoryInfo.Name;
-            Path = _directoryInfo.FullName;
-            _imageSource = IconService.GetIcon(Path, ItemType.Folder, IconSize.Small, ItemState.Close);
+            _showHiddenFiles = showHiddenFiles;
+            _filterRegex = filterRegex;
+            Name = directoryInfo.Name;
+            Path = directoryInfo.FullName;
+            _imageSource = iconService.GetIcon(Path, ItemType.Folder, IconSize.Small, ItemState.Close);
             Children.Add(new DummyViewModel());
         }
 
@@ -43,6 +48,7 @@ namespace TreeViewFileExplorer.ViewModels
             }
         }
 
+        // DirectoryViewModel.cs
         public override async Task ExploreAsync()
         {
             if (Children.Count == 1 && Children[0] is DummyViewModel)
@@ -51,28 +57,36 @@ namespace TreeViewFileExplorer.ViewModels
 
                 Children.Clear();
 
-                var directories = await FileSystemService.GetDirectoriesAsync(Path);
-                foreach (var dir in directories)
+                try
                 {
-                    var dirViewModel = new DirectoryViewModel(dir, IconService, FileSystemService, _eventAggregator);
-                    dirViewModel.PropertyChanged += OnChildPropertyChanged;
-                    Children.Add(dirViewModel);
-                }
+                    var directories = await FileSystemService.GetDirectoriesAsync(Path, _showHiddenFiles, _filterRegex);
+                    foreach (var dir in directories)
+                    {
+                        var dirViewModel = new DirectoryViewModel(dir, IconService, FileSystemService, _eventAggregator, _showHiddenFiles, _filterRegex);
+                        dirViewModel.PropertyChanged += OnChildPropertyChanged;
+                        Children.Add(dirViewModel);
+                    }
 
-                var files = await FileSystemService.GetFilesAsync(Path);
-                foreach (var file in files)
+                    var files = await FileSystemService.GetFilesAsync(Path, _showHiddenFiles, _filterRegex);
+                    foreach (var file in files)
+                    {
+                        var fileViewModel = new FileViewModel(file, IconService, FileSystemService, _showHiddenFiles, _filterRegex);
+                        fileViewModel.PropertyChanged += OnChildPropertyChanged;
+                        Children.Add(fileViewModel);
+                    }
+
+                    ImageSource = IconService.GetIcon(Path, ItemType.Folder, IconSize.Small, ItemState.Open);
+                }
+                catch (Exception ex)
                 {
-                    var fileViewModel = new FileViewModel(file, IconService, FileSystemService);
-                    fileViewModel.PropertyChanged += OnChildPropertyChanged;
-                    Children.Add(fileViewModel);
+                    // Log o gestisci l'eccezione
                 }
-
-                ImageSource = IconService.GetIcon(Path, ItemType.Folder, IconSize.Small, ItemState.Open);
-
-                _eventAggregator.Publish(new AfterExploreEvent(Path));
+                finally
+                {
+                    _eventAggregator.Publish(new AfterExploreEvent(Path));
+                }
             }
         }
-
 
 
         private void OnChildPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)

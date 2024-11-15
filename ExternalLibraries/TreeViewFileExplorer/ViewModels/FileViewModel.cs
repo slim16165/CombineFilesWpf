@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿// FileViewModel.cs
+using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using TreeViewFileExplorer.Enums;
@@ -17,8 +19,8 @@ namespace TreeViewFileExplorer.ViewModels
         /// <summary>
         /// Initializes a new instance of the <see cref="FileViewModel"/> class.
         /// </summary>
-        public FileViewModel(FileInfo fileInfo, IIconService iconService, IFileSystemService fileSystemService)
-            : base(iconService, fileSystemService)
+        public FileViewModel(FileInfo fileInfo, IIconService iconService, IFileSystemService fileSystemService, bool showHiddenFiles, Regex filterRegex)
+            : base(iconService, fileSystemService, showHiddenFiles, filterRegex)
         {
             _fileInfo = fileInfo;
             Name = _fileInfo.Name;
@@ -42,8 +44,8 @@ namespace TreeViewFileExplorer.ViewModels
 
         public override Task ExploreAsync()
         {
-            return default!;
-            // Files do not have child items.
+            return Task.CompletedTask;
         }
+
     }
 }

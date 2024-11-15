@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿// FileSystemService.cs
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace TreeViewFileExplorer.Services
@@ -10,17 +12,30 @@ namespace TreeViewFileExplorer.Services
     /// </summary>
     public class FileSystemService : IFileSystemService
     {
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryInfo>> GetDirectoriesAsync(string path)
+        public FileSystemService()
+        {
+        }
+
+        public async Task<IEnumerable<DirectoryInfo>> GetDirectoriesAsync(string path, bool showHiddenFiles, Regex filterRegex)
         {
             return await Task.Run(() =>
             {
                 try
                 {
                     var dir = new DirectoryInfo(path);
-                    return dir.GetDirectories()
-                              .Where(d => !d.Attributes.HasFlag(FileAttributes.System | FileAttributes.Hidden))
-                              .OrderBy(d => d.Name);
+                    var directories = dir.GetDirectories();
+
+                    if (!showHiddenFiles)
+                    {
+                        directories = directories.Where(d => !d.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
+                    }
+
+                    if (filterRegex != null)
+                    {
+                        directories = directories.Where(d => filterRegex.IsMatch(d.Name)).ToArray();
+                    }
+
+                    return directories.OrderBy(d => d.Name);
                 }
                 catch
                 {
@@ -29,17 +44,26 @@ namespace TreeViewFileExplorer.Services
             });
         }
 
-        /// <inheritdoc/>
-        public async Task<IEnumerable<FileInfo>> GetFilesAsync(string path)
+        public async Task<IEnumerable<FileInfo>> GetFilesAsync(string path, bool showHiddenFiles, Regex filterRegex)
         {
             return await Task.Run(() =>
             {
                 try
                 {
                     var dir = new DirectoryInfo(path);
-                    return dir.GetFiles()
-                              .Where(f => !f.Attributes.HasFlag(FileAttributes.System | FileAttributes.Hidden))
-                              .OrderBy(f => f.Name);
+                    var files = dir.GetFiles();
+
+                    if (!showHiddenFiles)
+                    {
+                        files = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
+                    }
+
+                    if (filterRegex != null)
+                    {
+                        files = files.Where(f => filterRegex.IsMatch(f.Name)).ToArray();
+                    }
+
+                    return files.OrderBy(f => f.Name);
                 }
                 catch
                 {
@@ -48,7 +72,6 @@ namespace TreeViewFileExplorer.Services
             });
         }
 
-        /// <inheritdoc/>
         public async Task<bool> IsAccessibleAsync(string path)
         {
             return await Task.Run(() =>

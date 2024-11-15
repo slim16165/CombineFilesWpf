@@ -40,30 +40,56 @@
             <MenuItem Header="Copia" Command="{Binding CopyCommand}" />
             <MenuItem Header="Sposta" Command="{Binding MoveCommand}" />
         </ContextMenu>
+        <telerik:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
-    <Grid>
-        <telerik:RadTreeView ItemsSource="{Binding RootItems}"
-                             Margin="5"
-                             IsLoadOnDemandEnabled="True"
-                             VirtualizingPanel.IsVirtualizing="True"
-                             VirtualizingPanel.VirtualizationMode="Recycling"
-                             ScrollViewer.IsDeferredScrollingEnabled="True"
-                             AllowDrop="True"
-                             DragOver="RadTreeView_DragOver"
-                             Drop="RadTreeView_Drop">
-            <telerik:RadTreeView.ItemContainerStyle>
-                <Style TargetType="telerik:RadTreeViewItem">
-                    <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
-                    <Setter Property="ContextMenu" Value="{StaticResource FileContextMenu}" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding}" Value="{x:Type vm:DirectoryViewModel}">
-                            <Setter Property="ContextMenu" Value="{StaticResource DirectoryContextMenu}" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </telerik:RadTreeView.ItemContainerStyle>
-        </telerik:RadTreeView>
-    </Grid>
+    <DockPanel>
+        <!-- Toolbar -->
+        <telerik:RadToolBar DockPanel.Dock="Top" Height="40">
+            <telerik:RadButton Command="{Binding ToggleHiddenFilesCommand}" 
+                                      ToolTip="Mostra/Nascondi File Nascosti" 
+                                      Content="👁️" />
+            <telerik:RadButton Command="{Binding ApplyFilterCommand}" 
+                               ToolTip="Applica Filtro Regex" 
+                               Content="🔍" />
+            <telerik:RadButton Command="{Binding NavigateToFolderCommand}" 
+                               ToolTip="Vai a Cartella" 
+                               Content="📂" />
+            <!-- Spinner di Caricamento -->
+            <telerik:RadBusyIndicator IsBusy="{Binding IsLoading}" 
+                                     Width="24" Height="24" 
+                                     Margin="10,0,0,0"
+                                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <telerik:RadBusyIndicator.BusyContent>
+                    <TextBlock Text="Caricamento..." />
+                </telerik:RadBusyIndicator.BusyContent>
+            </telerik:RadBusyIndicator>
+        </telerik:RadToolBar>
+
+        <!-- TreeView -->
+        <Grid>
+            <telerik:RadTreeView ItemsSource="{Binding RootItems}"
+                                 Margin="5"
+                                 IsLoadOnDemandEnabled="True"
+                                 VirtualizingPanel.IsVirtualizing="True"
+                                 VirtualizingPanel.VirtualizationMode="Recycling"
+                                 ScrollViewer.IsDeferredScrollingEnabled="True"
+                                 AllowDrop="True"
+                                 DragOver="RadTreeView_DragOver"
+                                 Drop="RadTreeView_Drop">
+                <telerik:RadTreeView.ItemContainerStyle>
+                    <Style TargetType="telerik:RadTreeViewItem">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <Setter Property="ContextMenu" Value="{StaticResource FileContextMenu}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding}" Value="{x:Type vm:DirectoryViewModel}">
+                                <Setter Property="ContextMenu" Value="{StaticResource DirectoryContextMenu}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </telerik:RadTreeView.ItemContainerStyle>
+            </telerik:RadTreeView>
+        </Grid>
+    </DockPanel>
 </UserControl>
