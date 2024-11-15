@@ -1,12 +1,12 @@
 # Combine-Files.ps1
 <#
 .SYNOPSIS
-Combina il contenuto di più file o stampa i nomi dei file in base alle opzioni, con supporto per preset predefiniti.
+Combina il contenuto di più file o stampa i nomi dei file in base alle opzioni, con supporto per preset predefiniti e modalità interattive.
 
 .DESCRIPTION
 Questa funzione permette di combinare file o stampare i loro nomi, basandosi su una lista specifica, estensioni o espressioni regolari.
 Supporta l'uso di preset predefiniti per configurazioni comuni, come il preset 'CSharp', e permette di estendere o sovrascrivere tali preset con parametri aggiuntivi.
-Include miglioramenti nella gestione delle esclusioni e un'interfaccia utente migliorata per una migliore esperienza d'uso.
+Include miglioramenti nella gestione delle esclusioni, una modalità interattiva per gestire manualmente l'elenco dei file e un'interfaccia utente migliorata per una migliore esperienza d'uso.
 
 .PARAMETER Preset
 Nome del preset da utilizzare. Esempi: 'CSharp'.
@@ -15,7 +15,7 @@ Nome del preset da utilizzare. Esempi: 'CSharp'.
 Elenca i preset disponibili.
 
 .PARAMETER Mode
-La modalità di selezione dei file: 'list', 'extensions', 'regex'.
+La modalità di selezione dei file: 'list', 'extensions', 'regex', 'InteractiveSelection'.
 
 .PARAMETER FileList
 (Array) Nomi di file da combinare. Utilizzato quando la modalità è 'list'.
@@ -80,6 +80,11 @@ Combina i file secondo il preset 'CSharp' ed esclude anche 'AdditionalFolder'.
 
 Elenca tutti i preset disponibili.
 
+.EXAMPLE
+.\Combine-Files.ps1 -Mode 'InteractiveSelection' -Extensions '.cs', '.xaml' -OutputFile 'CombinedFile.cs' -Recurse -ExcludePaths 'Properties', 'obj', 'bin' -ExcludeFilePatterns '.*\.g\.cs$', '.*\.designer\.cs$'
+
+Avvia la modalità di selezione interattiva per personalizzare l'elenco dei file da combinare.
+
 #>
 
 [CmdletBinding()]
@@ -91,8 +96,8 @@ param (
     [Parameter(Mandatory = $false, HelpMessage = "Elenca i preset disponibili.")]
     [switch]$ListPresets,
 
-    [Parameter(Mandatory = $false, HelpMessage = "La modalità di selezione dei file: 'list', 'extensions', 'regex'.")]
-    [ValidateSet("list", "extensions", "regex")]
+    [Parameter(Mandatory = $false, HelpMessage = "La modalità di selezione dei file: 'list', 'extensions', 'regex', 'InteractiveSelection'.")]
+    [ValidateSet("list", "extensions", "regex", "InteractiveSelection")]
     [string]$Mode,
 
     [Parameter(Mandatory = $false, HelpMessage = "Array di nomi di file da combinare. Utilizzato quando la modalità è 'list'.")]
@@ -185,36 +190,74 @@ function Convert-SizeToBytes {
     }
 }
 
+function Is-PathExcluded {
+    param (
+        [string]$FilePath,
+        [string[]]$ExcludedPaths,
+        [string[]]$ExcludedFiles,
+        [string[]]$ExcludedFilePatterns
+    )
+    # Verifica se il percorso del file è in una cartella esclusa
+    foreach ($excluded in $ExcludedPaths) {
+        if ($FilePath -ieq $excluded) {
+            Write-Log "Escluso per percorso esatto: $FilePath corrisponde a $excluded"
+            return $true
+        }
+        if ($FilePath.StartsWith($excluded + [IO.Path]::DirectorySeparatorChar, [System.StringComparison]::InvariantCultureIgnoreCase)) {
+            Write-Log "Escluso per percorso: $FilePath inizia con $excluded"
+            return $true
+        }
+    }
+
+    # Verifica se il file è nella lista dei nomi esclusi
+    foreach ($excludedFile in $ExcludedFiles) {
+        if ([System.IO.Path]::GetFileName($FilePath) -ieq $excludedFile) {
+            Write-Log "Escluso per nome file: $FilePath corrisponde a $excludedFile"
+            return $true
+        }
+    }
+
+    # Verifica se il file corrisponde a uno dei pattern esclusi
+    foreach ($pattern in $ExcludedFilePatterns) {
+        if ($FilePath -match $pattern) {
+            Write-Log "Escluso per pattern regex: $FilePath corrisponde a $pattern"
+            return $true
+        }
+    }
+
+    Write-Log "File incluso: $FilePath"
+    return $false
+}
+
 function Get-FilesToProcess {
     param (
         [string]$Mode,
         [string[]]$FileList,
         [string[]]$Extensions,
         [string[]]$RegexPatterns,
-        [string]$sourcePath,
+        [string]$SourcePath,
         [switch]$Recurse,
-        [string[]]$fullExcludePaths,
-        [string[]]$fullExcludeFiles,
-        [string[]]$fullExcludeFilePatterns
+        [string[]]$FullExcludePaths,
+        [string[]]$FullExcludeFiles,
+        [string[]]$FullExcludeFilePatterns
     )
 
     $files = @()
     switch ($Mode) {
         'list' {
             foreach ($file in $FileList) {
-                $filePath = Join-Path -Path $sourcePath -ChildPath $file
+                $filePath = Join-Path -Path $SourcePath -ChildPath $file
                 $resolved = Resolve-Path -Path $filePath -ErrorAction SilentlyContinue
                 if ($resolved -and (Test-Path $resolved.Path -PathType Leaf)) {
-                    if (-not (Is-PathExcluded $_.Path $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)) {
+                    if (-not (Is-PathExcluded $resolved.Path $FullExcludePaths $FullExcludeFiles $FullExcludeFilePatterns)) {
                         $files += $resolved.Path
-                        Write-Log "File aggiunto dalla lista: $($resolved.Path)"
+                        Write-Log "File incluso dalla lista: $($resolved.Path)"
                     }
                     else {
-                        Write-Log "File escluso (lista): $($resolved.Path)"
+                        Write-Log "File escluso dalla lista: $($resolved.Path)"
                     }
                 }
                 else {
-                    Write-Warning "File non trovato: $filePath"
                     Write-Log "File non trovato: $filePath" "WARNING"
                 }
             }
@@ -223,21 +266,31 @@ function Get-FilesToProcess {
             foreach ($ext in $Extensions) {
                 $ext = if ($ext.StartsWith('.')) { $ext } else { ".$ext" }
                 Write-Log "Ricerca per estensione: $ext"
-                $matched = Get-ChildItem -Path $sourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue | Where-Object { -not (Is-PathExcluded $_.FullName $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns) } | Select-Object -ExpandProperty FullName
-                $files += $matched
-                Write-Log "$($matched.Count) file trovati con estensione $ext."
+                $matched = Get-ChildItem -Path $SourcePath -File -Filter "*$ext" -Recurse:$Recurse -ErrorAction SilentlyContinue
+                foreach ($file in $matched) {
+                    if (-not (Is-PathExcluded $file.FullName $FullExcludePaths $FullExcludeFiles $FullExcludeFilePatterns)) {
+                        $files += $file.FullName
+                        Write-Log "File incluso: $($file.FullName)"
+                    }
+                    else {
+                        Write-Log "File escluso: $($file.FullName)"
+                    }
+                }
             }
             $files = $files | Sort-Object -Unique
             Write-Log "Totale file da processare dopo rimozione duplicati: $($files.Count)"
         }
         'regex' {
-            $allFiles = Get-ChildItem -Path $sourcePath -File -Recurse:$Recurse -ErrorAction SilentlyContinue
+            $allFiles = Get-ChildItem -Path $SourcePath -File -Recurse:$Recurse -ErrorAction SilentlyContinue
             foreach ($file in $allFiles) {
                 foreach ($pattern in $RegexPatterns) {
                     if ($file.Name -match $pattern) {
-                        if (-not (Is-PathExcluded $file.FullName $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)) {
+                        if (-not (Is-PathExcluded $file.FullName $FullExcludePaths $FullExcludeFiles $FullExcludeFilePatterns)) {
                             $files += $file.FullName
-                            Write-Log "File corrispondente al pattern '$pattern': $($file.FullName)"
+                            Write-Log "File incluso per pattern regex: $($file.FullName)"
+                        }
+                        else {
+                            Write-Log "File escluso per pattern regex: $($file.FullName)"
                         }
                         break  # Evita di aggiungere lo stesso file più volte se corrisponde a più pattern
                     }
@@ -246,9 +299,79 @@ function Get-FilesToProcess {
             $files = $files | Sort-Object -Unique
             Write-Log "Totale file da processare dopo rimozione duplicati: $($files.Count)"
         }
+        'InteractiveSelection' {
+            # La modalità InteractiveSelection verrà gestita separatamente nel flusso principale
+            Write-Log "Modalità 'InteractiveSelection' selezionata. Gestita nel flusso principale."
+        }
     }
 
     return $files
+}
+
+function Start-InteractiveSelection {
+    param (
+        [string[]]$InitialFiles,
+        [string]$SourcePath
+    )
+
+    # Convertire i percorsi assoluti in relativi
+    $relativePaths = $InitialFiles | ForEach-Object { 
+        [System.IO.Path]::GetRelativePath($SourcePath, $_)
+    }
+
+    # Crea un file temporaneo
+    $tempConfigFilePath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "CombineFiles_InteractiveSelection.txt")
+
+    # Scrivi l'elenco dei file nel file temporaneo
+    $relativePaths | Out-File -FilePath $tempConfigFilePath -Encoding UTF8
+
+    Write-Log "File di configurazione temporaneo creato: $tempConfigFilePath"
+    Show-Message "File di configurazione temporaneo creato: $tempConfigFilePath" "Yellow"
+
+    # Apri il file nell'editor predefinito
+    $editor = $env:EDITOR
+    if (-not $editor) {
+        $editor = "notepad.exe"
+    }
+
+    Write-Log "Apertura del file di configurazione temporaneo con l'editor: $editor"
+    Start-Process -FilePath $editor -ArgumentList $tempConfigFilePath -Wait
+
+    Write-Log "Editor chiuso. Lettura del file di configurazione aggiornato."
+    Show-Message "Editor chiuso. Lettura del file di configurazione aggiornato." "Green"
+
+    # Leggi il file di configurazione aggiornato
+    if (Test-Path $tempConfigFilePath) {
+        $updatedRelativePaths = Get-Content -Path $tempConfigFilePath -ErrorAction Stop | Where-Object { $_.Trim() -ne "" }
+
+        # Converti i percorsi relativi in assoluti
+        $updatedFiles = $updatedRelativePaths | ForEach-Object {
+            $absolutePath = Join-Path -Path $SourcePath -ChildPath $_
+            if (Test-Path $absolutePath -PathType Leaf) {
+                $absolutePath
+            }
+            else {
+                Write-Warning "File non trovato durante la lettura del config: $absolutePath"
+                Write-Log "File non trovato durante la lettura del config: $absolutePath" "WARNING"
+                $null
+            }
+        } | Where-Object { $_ -ne $null }
+
+        Write-Log "File aggiornati dopo InteractiveSelection: $($updatedFiles.Count)"
+        Show-Message "File aggiornati dopo InteractiveSelection: $($updatedFiles.Count)" "Cyan"
+
+        # Rimuovi il file temporaneo
+        Remove-Item -Path $tempConfigFilePath -Force
+        Write-Log "File di configurazione temporaneo rimosso: $tempConfigFilePath"
+    }
+    else {
+        Write-Error "Il file di configurazione temporaneo non è stato trovato: $tempConfigFilePath"
+        Write-Log "Errore: Il file di configurazione temporaneo non è stato trovato: $tempConfigFilePath" "ERROR"
+        Show-Message "Errore: Il file di configurazione temporaneo non è stato trovato." "Red"
+        return @()
+    }
+
+    return $updatedFiles
 }
 
 function Write-OutputOrFile {
@@ -278,35 +401,12 @@ function Write-OutputOrFile {
     }
 }
 
-function Is-PathExcluded {
+function Show-Message {
     param (
-        [string]$FilePath,
-        [string[]]$ExcludedPaths,
-        [string[]]$ExcludedFiles,
-        [string[]]$ExcludedFilePatterns
+        [string]$Message,
+        [string]$Color = "White"
     )
-    foreach ($excluded in $ExcludedPaths) {
-        if ($FilePath -ieq $excluded) {
-            return $true
-        }
-        if ($FilePath.StartsWith($excluded + [IO.Path]::DirectorySeparatorChar, [System.StringComparison]::InvariantCultureIgnoreCase)) {
-            return $true
-        }
-    }
-
-    foreach ($excludedFile in $ExcludedFiles) {
-        if ([System.IO.Path]::GetFileName($FilePath) -ieq $excludedFile) {
-            return $true
-        }
-    }
-
-    foreach ($pattern in $ExcludedFilePatterns) {
-        if ($FilePath -match $pattern) {
-            return $true
-        }
-    }
-
-    return $false
+    Write-Host $Message -ForegroundColor $Color
 }
 
 # Inizio dello script
@@ -324,15 +424,6 @@ catch {
     Write-Error "Impossibile creare il file di log: $logFile"
     Write-Host "Impossibile creare il file di log: $logFile" -ForegroundColor Red
     return
-}
-
-# Funzione per visualizzare messaggi colorati
-function Show-Message {
-    param (
-        [string]$Message,
-        [string]$Color = "White"
-    )
-    Write-Host $Message -ForegroundColor $Color
 }
 
 # Gestione del parametro -ListPresets
@@ -444,10 +535,10 @@ if ($Mode -eq 'list' -and -not $FileList) {
     return
 }
 
-if ($Mode -eq 'extensions' -and -not $Extensions) {
-    Write-Error "La modalità 'extensions' richiede il parametro -Extensions."
-    Write-Log "Errore: Modalità 'extensions' senza -Extensions." "ERROR"
-    Show-Message "Errore: La modalità 'extensions' richiede il parametro -Extensions." "Red"
+if (($Mode -eq 'extensions' -or $Mode -eq 'InteractiveSelection') -and -not $Extensions) {
+    Write-Error "La modalità '$Mode' richiede il parametro -Extensions."
+    Write-Log "Errore: Modalità '$Mode' senza -Extensions." "ERROR"
+    Show-Message "Errore: La modalità '$Mode' richiede il parametro -Extensions." "Red"
     return
 }
 
@@ -459,7 +550,7 @@ if ($Mode -eq 'regex' -and -not $RegexPatterns) {
 }
 
 # Validazione delle estensioni
-if ($Mode -eq 'extensions') {
+if ($Mode -eq 'extensions' -or $Mode -eq 'InteractiveSelection') {
     foreach ($ext in $Extensions) {
         if (-not $ext.StartsWith('.')) {
             Write-Error "L'estensione '$ext' deve iniziare con un punto."
@@ -475,10 +566,34 @@ $minSizeBytes = if ($MinSize) { Convert-SizeToBytes $MinSize } else { 0 }
 $maxSizeBytes = if ($MaxSize) { Convert-SizeToBytes $MaxSize } else { [int64]::MaxValue }
 
 # Ottieni la lista dei file da processare
-$filesToProcess = Get-FilesToProcess -Mode $Mode -FileList $FileList -Extensions $Extensions -RegexPatterns $RegexPatterns -sourcePath $sourcePath -Recurse:$Recurse -fullExcludePaths $fullExcludePaths -fullExcludeFiles $fullExcludeFiles -fullExcludeFilePatterns $fullExcludeFilePatterns
+$filesToProcess = Get-FilesToProcess -Mode $Mode -FileList $FileList -Extensions $Extensions -RegexPatterns $RegexPatterns `
+    -SourcePath $sourcePath -Recurse:$Recurse -FullExcludePaths $fullExcludePaths `
+    -FullExcludeFiles $fullExcludeFiles -FullExcludeFilePatterns $fullExcludeFilePatterns
 
 Write-Log "Numero iniziale di file da processare: $($filesToProcess.Count)"
 Show-Message "Numero iniziale di file da processare: $($filesToProcess.Count)" "Cyan"
+
+# Gestione della modalità InteractiveSelection
+if ($Mode -eq 'InteractiveSelection') {
+    Write-Log "Modalità 'InteractiveSelection' attivata."
+    Show-Message "Modalità 'InteractiveSelection' attivata." "Yellow"
+
+    # Avvia la procedura di selezione interattiva
+    $interactiveFiles = Start-InteractiveSelection -InitialFiles $filesToProcess -SourcePath $sourcePath
+
+    if ($interactiveFiles.Count -eq 0) {
+        Write-Warning "Nessun file selezionato dopo la selezione interattiva."
+        Write-Log "Nessun file selezionato dopo la selezione interattiva." "WARNING"
+        Show-Message "Nessun file selezionato dopo la selezione interattiva." "Yellow"
+        return
+    }
+
+    # Sostituisci l'elenco dei file da processare con quelli aggiornati
+    $filesToProcess = $interactiveFiles
+
+    Write-Log "Numero di file dopo InteractiveSelection: $($filesToProcess.Count)"
+    Show-Message "Numero di file dopo InteractiveSelection: $($filesToProcess.Count)" "Cyan"
+}
 
 # Filtra i file basati su data e dimensione
 if ($MinDate -or $MaxDate -or $MinSize -or $MaxSize) {
