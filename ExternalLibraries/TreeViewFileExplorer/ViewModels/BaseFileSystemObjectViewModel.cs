@@ -1,15 +1,15 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using Microsoft.Win32;
-using Microsoft.WindowsAPICodePack.Dialogs;
 using TreeViewFileExplorer.Model;
 using TreeViewFileExplorer.Services;
 using TreeViewFileExplorer.Views;
@@ -24,7 +24,7 @@ namespace TreeViewFileExplorer.ViewModels
         protected readonly IIconService IconService;
         protected readonly IFileSystemService FileSystemService;
 
-        public BaseFileSystemObjectViewModel(IIconService iconService, IFileSystemService fileSystemService)
+        protected BaseFileSystemObjectViewModel(IIconService iconService, IFileSystemService fileSystemService, bool showHiddenFiles, Regex filterRegex)
         {
             IconService = iconService;
             FileSystemService = fileSystemService;
@@ -38,11 +38,15 @@ namespace TreeViewFileExplorer.ViewModels
         }
 
         public abstract string Name { get; protected set; }
+
         public abstract string Path { get; protected set; }
+
         public abstract ImageSource ImageSource { get; protected set; }
+
         public ObservableCollection<IFileSystemObjectViewModel> Children { get; }
 
         private bool _isSelected;
+
         public bool IsSelected
         {
             get => _isSelected;
@@ -57,6 +61,7 @@ namespace TreeViewFileExplorer.ViewModels
         }
 
         private bool _isExpanded;
+
         public bool IsExpanded
         {
             get => _isExpanded;
@@ -141,7 +146,7 @@ namespace TreeViewFileExplorer.ViewModels
                 }
             }
         }
-    
+
         protected virtual void Move(object parameter)
         {
             // Implementa la logica per spostare l'oggetto
@@ -292,6 +297,26 @@ namespace TreeViewFileExplorer.ViewModels
         protected void OnPropertyChanged([CallerMemberName] string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        protected bool IsVisible(string name, bool isDirectory)
+        {
+            // Ottieni il ViewModel principale per accedere ai filtri
+            var mainViewModel = Application.Current.MainWindow.DataContext as TreeViewExplorerViewModel;
+            if (mainViewModel == null)
+                return true;
+
+            // Verifica la visibilità dei file nascosti
+            if (!mainViewModel.ShowHiddenFiles && name.StartsWith("."))
+                return false;
+
+            // Verifica il filtro regex
+            if (mainViewModel.FilterRegex != null && mainViewModel._regexFilter != null)
+            {
+                return mainViewModel._regexFilter.IsMatch(name);
+            }
+
+            return true;
         }
     }
 }

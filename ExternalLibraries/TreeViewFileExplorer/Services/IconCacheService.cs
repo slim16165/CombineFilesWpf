@@ -24,7 +24,7 @@ public class IconCacheService : IDisposable
     public ImageSource GetIcon(string path, ItemType type, IconSize size, ItemState state)
     {
         var cacheKey = GenerateCacheKey(path, type, size, state);
-        
+
         if (_iconCache.TryGetValue(cacheKey, out var weakRef))
         {
             if (weakRef.TryGetTarget(out var icon))

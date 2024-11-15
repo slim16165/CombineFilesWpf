@@ -95,6 +95,7 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
     <Compile Include="Enums\IconSize.cs" />
     <Compile Include="Enums\ItemState.cs" />
     <Compile Include="Enums\ItemType.cs" />
