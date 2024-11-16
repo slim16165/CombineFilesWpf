@@ -1,4 +1,3 @@
-# Combine-Files.ps1
 <#
 .SYNOPSIS
 Combina il contenuto di più file o stampa i nomi dei file in base alle opzioni, con supporto per preset predefiniti e modalità interattive.
@@ -81,10 +80,9 @@ Combina i file secondo il preset 'CSharp' ed esclude anche 'AdditionalFolder'.
 Elenca tutti i preset disponibili.
 
 .EXAMPLE
-.\Combine-Files.ps1 -Mode 'InteractiveSelection' -Extensions '.cs', '.xaml' -OutputFile 'CombinedFile.cs' -Recurse -ExcludePaths 'Properties', 'obj', 'bin' -ExcludeFilePatterns '.*\.g\.cs$', '.*\.designer\.cs$'
+.\Combine-Files.ps1 -Mode 'InteractiveSelection' -Extensions '.cs', '.xaml' -OutputFile 'CombinedFile.cs' -Recurse -ExcludePaths 'Properties', 'obj', 'bin' -ExcludeFilePatterns '.*\.g\.cs$', '.*\.designer\.cs$', '.*\.g\.i\.cs$'
 
 Avvia la modalità di selezione interattiva per personalizzare l'elenco dei file da combinare.
-
 #>
 
 [CmdletBinding()]
@@ -159,7 +157,7 @@ $Presets = @{
         OutputFile = 'CombinedFile.cs'
         Recurse = $true
         ExcludePaths = 'Properties', 'obj', 'bin'
-        ExcludeFilePatterns = '.*\.g\.cs$', '.*\.designer\.cs$'
+        ExcludeFilePatterns = '.*\.g\.i\.cs$', '.*\.g\.cs$', '.*\.designer\.cs$'
     }
     # Puoi aggiungere altri preset qui
 }
@@ -197,14 +195,12 @@ function Is-PathExcluded {
         [string[]]$ExcludedFiles,
         [string[]]$ExcludedFilePatterns
     )
-    # Verifica se il percorso del file è in una cartella esclusa
+    # Verifica se il file si trova in una cartella esclusa a qualsiasi livello
     foreach ($excluded in $ExcludedPaths) {
-        if ($FilePath -ieq $excluded) {
-            Write-Log "Escluso per percorso esatto: $FilePath corrisponde a $excluded"
-            return $true
-        }
-        if ($FilePath.StartsWith($excluded + [IO.Path]::DirectorySeparatorChar, [System.StringComparison]::InvariantCultureIgnoreCase)) {
-            Write-Log "Escluso per percorso: $FilePath inizia con $excluded"
+        # Controlla se una delle directory nel percorso del file corrisponde a una cartella esclusa
+        $directories = Split-Path -Path $FilePath -Parent | Split-Path -Path $_ -Resolve
+        if ($FilePath -match [regex]::Escape($excluded)) {
+            Write-Log "Escluso per presenza di '$excluded' nel percorso: $FilePath"
             return $true
         }
     }
