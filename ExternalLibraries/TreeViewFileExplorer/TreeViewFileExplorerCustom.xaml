@@ -40,7 +40,7 @@
             <MenuItem Header="Copia" Command="{Binding CopyCommand}" />
             <MenuItem Header="Sposta" Command="{Binding MoveCommand}" />
         </ContextMenu>
-        <telerik:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </UserControl.Resources>
 
     <DockPanel>
@@ -68,7 +68,7 @@
 
         <!-- TreeView -->
         <Grid>
-            <telerik:RadTreeView ItemsSource="{Binding RootItems}"
+            <!--<telerik:RadTreeView ItemsSource="{Binding RootItems}"
                                  Margin="5"
                                  IsLoadOnDemandEnabled="True"
                                  VirtualizingPanel.IsVirtualizing="True"
@@ -77,7 +77,7 @@
                                  AllowDrop="True"
                                  DragOver="RadTreeView_DragOver"
                                  Drop="RadTreeView_Drop">
-                <telerik:RadTreeView.ItemContainerStyle>
+            <telerik:RadTreeView.ItemContainerStyle>
                     <Style TargetType="telerik:RadTreeViewItem">
                         <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
                         <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
@@ -89,7 +89,7 @@
                         </Style.Triggers>
                     </Style>
                 </telerik:RadTreeView.ItemContainerStyle>
-            </telerik:RadTreeView>
+            </telerik:RadTreeView>-->
         </Grid>
     </DockPanel>
 </UserControl>

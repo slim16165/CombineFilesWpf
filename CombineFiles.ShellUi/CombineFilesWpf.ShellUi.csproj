@@ -1,20 +1,20 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>TreeViewFileExplorer</RootNamespace>
-    <AssemblyName>TreeViewFileExplorer</AssemblyName>
+    <ProjectGuid>{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>CombineFiles.ShellUi</RootNamespace>
+    <AssemblyName>CombineFiles.ShellUi</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
     <LangVersion>latest</LangVersion>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -35,7 +35,6 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <!-- Definizione della variabile TelerikPath:
        1. Prova con percorso relativo: ..\..\..\..\Telerik\RadControls
@@ -45,13 +44,9 @@
   <Import Project="C:\Users\g.salvi\source\repos\TelerikReferences.props" Condition="Exists('C:\Users\g.salvi\source\repos\TelerikReferences.props')" />
   <Import Project="..\..\TelerikReferences.props" Condition="!Exists('C:\Users\g.salvi\source\repos\TelerikReferences.props') AND Exists('..\..\TelerikReferences.props')" />
   <!-- Riferimenti generali (altri assembly e pacchetti) -->
-  <PropertyGroup>
-    <StartupObject />
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Drawing" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -66,47 +61,21 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Converters\BooleanToVisibilityConverter.cs" />
-    <Compile Include="Enums\IconSize.cs" />
-    <Compile Include="Enums\ItemState.cs" />
-    <Compile Include="Enums\ItemType.cs" />
-    <Compile Include="Enums\FileAttribute.cs" />
-    <Compile Include="Enums\ShellAttribute.cs" />
-    <Compile Include="Events\EventAggregator.cs" />
-    <Compile Include="Events\Events.cs" />
-    <Compile Include="Views\InputDialog.xaml.cs">
-      <DependentUpon>InputDialog.xaml</DependentUpon>
+    <ApplicationDefinition Include="App.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </ApplicationDefinition>
+    <Page Include="MainWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="App.xaml.cs">
+      <DependentUpon>App.xaml</DependentUpon>
+      <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Interop.cs" />
-    <Compile Include="Model\RelayCommand.cs" />
-    <Compile Include="Model\FileItem.cs" />
-    <Compile Include="Services\IconCacheService.cs" />
-    <Compile Include="Services\IIconService.cs" />
-    <Compile Include="ShellClasses\FileSystemEventHandler.cs" />
-    <Compile Include="ViewModels\BaseFileSystemObjectViewModel.cs" />
-    <Compile Include="ViewModels\BaseViewModel.cs" />
-    <Compile Include="ViewModels\DirectoryViewModel.cs" />
-    <Compile Include="ViewModels\DummyViewModel.cs" />
-    <Compile Include="ViewModels\FileSystemItemTemplateSelector.cs" />
-    <Compile Include="Manager\ShellManager.cs" />
-    <Compile Include="Services\FileSystemService.cs" />
-    <Compile Include="Services\IconService.cs" />
-    <Compile Include="ShellClasses\IFileSystemObjectInfo.cs" />
-    <Compile Include="Services\IFileSystemService.cs" />
-    <Compile Include="Structs\ShellFileInfo.cs" />
-    <Compile Include="ViewModels\FileViewModel.cs" />
-    <Compile Include="ViewModels\IFileSystemObjectViewModel.cs" />
-    <Compile Include="ViewModels\TreeViewExplorerViewModel.cs" />
-    <Page Include="Views\InputDialog.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="TreeViewFileExplorerCustom.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Compile Include="TreeViewFileExplorerCustom.xaml.cs">
-      <DependentUpon>TreeViewFileExplorerCustom.xaml</DependentUpon>
+    <Compile Include="ContextMenuRegistration.cs" />
+    <Compile Include="MainWindow.xaml.cs">
+      <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
@@ -128,26 +97,20 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
-    <None Include="NLog.config" />
-    <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
-    <None Include="README.md" />
+    <None Include="RegisterContextMenu.reg" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <PackageReference Include="WindowsAPICodePack-Core" />
-    <PackageReference Include="WindowsAPICodePack-Shell" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\CombineFiles.Core\CombineFiles.Core.csproj">
+    <ProjectReference Include="..\CombineFiles.Core\CombineFiles.Core.csproj">
       <Project>{385100D8-E4CC-4B4A-ABA4-6085F0900B38}</Project>
       <Name>CombineFiles.Core</Name>
     </ProjectReference>
   </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

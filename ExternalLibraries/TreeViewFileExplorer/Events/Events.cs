@@ -1,22 +1,21 @@
-namespace TreeViewFileExplorer.Events
+namespace TreeViewFileExplorer.Events;
+
+public class BeforeExploreEvent
 {
-    public class BeforeExploreEvent
-    {
-        public string Path { get; }
+    public string Path { get; }
 
-        public BeforeExploreEvent(string path)
-        {
-            Path = path;
-        }
+    public BeforeExploreEvent(string path)
+    {
+        Path = path;
     }
+}
 
-    public class AfterExploreEvent
+public class AfterExploreEvent
+{
+    public string Path { get; }
+
+    public AfterExploreEvent(string path)
     {
-        public string Path { get; }
-
-        public AfterExploreEvent(string path)
-        {
-            Path = path;
-        }
+        Path = path;
     }
 }

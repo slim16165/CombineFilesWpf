@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /ExternalLibraries/TreeViewFileExplorer/CombinedFile.txt
 /ExternalLibraries/TreeViewFileExplorer/CombinedFile.cs
+/CombineFiles.zip
+/CombineFiles.Core/CombinedFile.cs

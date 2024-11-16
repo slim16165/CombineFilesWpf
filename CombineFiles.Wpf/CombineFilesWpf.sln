@@ -5,7 +5,7 @@ VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombineFilesWpf", "CombineFilesWpf.csproj", "{3A56C57C-87E8-4A3B-879D-356C2AAB1A74}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TreeViewFileExplorer", "ExternalLibraries\TreeViewFileExplorer\TreeViewFileExplorer.csproj", "{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CombineFiles.ShellUi", "..\CombineFiles.ShellUi\CombineFiles.ShellUi.csproj", "{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{3A56C57C-87E8-4A3B-879D-356C2AAB1A74}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A56C57C-87E8-4A3B-879D-356C2AAB1A74}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A56C57C-87E8-4A3B-879D-356C2AAB1A74}.Release|Any CPU.Build.0 = Release|Any CPU
-		{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{398480CA-D7CA-4FBD-B4F4-65A17F8E2C95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECD5BE67-87D4-4BB9-ABD7-348D79C252EC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

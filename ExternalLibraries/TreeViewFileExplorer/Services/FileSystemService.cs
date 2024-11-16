@@ -5,87 +5,86 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace TreeViewFileExplorer.Services
+namespace TreeViewFileExplorer.Services;
+
+/// <summary>
+/// Service for interacting with the file system asynchronously.
+/// </summary>
+public class FileSystemService : IFileSystemService
 {
-    /// <summary>
-    /// Service for interacting with the file system asynchronously.
-    /// </summary>
-    public class FileSystemService : IFileSystemService
+    public FileSystemService()
     {
-        public FileSystemService()
-        {
-        }
+    }
 
-        public async Task<IEnumerable<DirectoryInfo>> GetDirectoriesAsync(string path, bool showHiddenFiles, Regex filterRegex)
+    public async Task<IEnumerable<DirectoryInfo>> GetDirectoriesAsync(string path, bool showHiddenFiles, Regex filterRegex)
+    {
+        return await Task.Run(() =>
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                var dir = new DirectoryInfo(path);
+                var directories = dir.GetDirectories();
+
+                if (!showHiddenFiles)
                 {
-                    var dir = new DirectoryInfo(path);
-                    var directories = dir.GetDirectories();
-
-                    if (!showHiddenFiles)
-                    {
-                        directories = directories.Where(d => !d.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
-                    }
-
-                    if (filterRegex != null)
-                    {
-                        directories = directories.Where(d => filterRegex.IsMatch(d.Name)).ToArray();
-                    }
-
-                    return directories.OrderBy(d => d.Name);
+                    directories = directories.Where(d => !d.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
                 }
-                catch
+
+                if (filterRegex != null)
                 {
-                    return Enumerable.Empty<DirectoryInfo>();
+                    directories = directories.Where(d => filterRegex.IsMatch(d.Name)).ToArray();
                 }
-            });
-        }
 
-        public async Task<IEnumerable<FileInfo>> GetFilesAsync(string path, bool showHiddenFiles, Regex filterRegex)
-        {
-            return await Task.Run(() =>
+                return directories.OrderBy(d => d.Name);
+            }
+            catch
             {
-                try
-                {
-                    var dir = new DirectoryInfo(path);
-                    var files = dir.GetFiles();
+                return Enumerable.Empty<DirectoryInfo>();
+            }
+        });
+    }
 
-                    if (!showHiddenFiles)
-                    {
-                        files = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
-                    }
-
-                    if (filterRegex != null)
-                    {
-                        files = files.Where(f => filterRegex.IsMatch(f.Name)).ToArray();
-                    }
-
-                    return files.OrderBy(f => f.Name);
-                }
-                catch
-                {
-                    return Enumerable.Empty<FileInfo>();
-                }
-            });
-        }
-
-        public async Task<bool> IsAccessibleAsync(string path)
+    public async Task<IEnumerable<FileInfo>> GetFilesAsync(string path, bool showHiddenFiles, Regex filterRegex)
+    {
+        return await Task.Run(() =>
         {
-            return await Task.Run(() =>
+            try
             {
-                try
+                var dir = new DirectoryInfo(path);
+                var files = dir.GetFiles();
+
+                if (!showHiddenFiles)
                 {
-                    var dir = new DirectoryInfo(path);
-                    return dir.Exists && !dir.Attributes.HasFlag(FileAttributes.ReparsePoint);
+                    files = files.Where(f => !f.Attributes.HasFlag(FileAttributes.Hidden)).ToArray();
                 }
-                catch
+
+                if (filterRegex != null)
                 {
-                    return false;
+                    files = files.Where(f => filterRegex.IsMatch(f.Name)).ToArray();
                 }
-            });
-        }
+
+                return files.OrderBy(f => f.Name);
+            }
+            catch
+            {
+                return Enumerable.Empty<FileInfo>();
+            }
+        });
+    }
+
+    public async Task<bool> IsAccessibleAsync(string path)
+    {
+        return await Task.Run(() =>
+        {
+            try
+            {
+                var dir = new DirectoryInfo(path);
+                return dir.Exists && !dir.Attributes.HasFlag(FileAttributes.ReparsePoint);
+            }
+            catch
+            {
+                return false;
+            }
+        });
     }
 }
