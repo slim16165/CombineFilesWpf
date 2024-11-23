@@ -38,6 +38,7 @@
     <Compile Include="InteractiveSelection\InteractiveSelection.psm1" />
     <Compile Include="Logging\Logging.psm1" />
     <Compile Include="Main.ps1" />
+    <Compile Include="Presets.psm1" />
     <Compile Include="Utilities\Utilities.psm1" />
   </ItemGroup>
   <ItemGroup>
