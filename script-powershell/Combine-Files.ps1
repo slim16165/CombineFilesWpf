@@ -74,6 +74,11 @@ Combina i file secondo il preset 'CSharp' ed esclude anche 'AdditionalFolder'.
 
 Elenca tutti i preset disponibili.
 
+.EXAMPLE
+.\Combine-Files.ps1 -Mode 'extensions' -Extensions '.txt', '.log' -OutputFile 'CombinedLogs.txt' -Recurse
+
+Combina tutti i file con estensione .txt e .log nelle cartelle correnti e sottocartelle, salvando in 'CombinedLogs.txt'.
+
 #>
 
 [CmdletBinding()]
