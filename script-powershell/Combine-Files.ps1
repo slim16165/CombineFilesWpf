@@ -78,7 +78,7 @@ Mostra questo messaggio di aiuto.
 Combina tutti i file con estensione .cs e .xaml nelle cartelle correnti e sottocartelle, escludendo 'Properties', 'obj', 'bin', salvando in 'CombinedFile.cs'.
 
 .EXAMPLE
-.\Combine-Files.ps1 -EnableLog /help
+.\Combine-Files.ps1 -EnableLog -Help
 
 Mostra il messaggio di aiuto.
 
@@ -87,23 +87,17 @@ Mostra il messaggio di aiuto.
 
 Combina tutti i file con estensione .cs e .xaml nelle cartelle correnti e sottocartelle, seguendo le giunzioni/hard link.
 
+.EXAMPLE
+.\Combine-Files.ps1 -Mode 'InteractiveSelection' -Extensions '.cs', '.xaml' -OutputFile 'CombinedFile.cs' -Recurse -ExcludePaths 'Properties', 'obj', 'bin' -ExcludeFilePatterns '.*\.g\.cs$', '.*\.designer\.cs$', '.*\.g\.i\.cs$' -EnableLog
+
+Avvia la modalità di selezione interattiva per personalizzare l'elenco dei file da combinare.
 #>
 
-# Gestione del parametro /help prima di CmdletBinding
+[CmdletBinding()]
 param (
     [Parameter(Mandatory=$false, Position=0)]
-    [string[]]$Args
-)
+    [switch]$Help,
 
-foreach ($arg in $Args) {
-    if ($arg -ieq "/help") {
-        Get-Help -Full
-        exit
-    }
-}
-
-[CmdletBinding(DefaultParameterSetName="Default")]
-param (
     [Parameter(Mandatory = $false, HelpMessage = "Nome del preset da utilizzare.")]
     [ValidateNotNullOrEmpty()]
     [string]$Preset,
@@ -166,24 +160,8 @@ param (
     [string]$MaxSize,
 
     [Parameter(Mandatory = $false, HelpMessage = "Abilita la generazione del file di log.")]
-    [switch]$EnableLog,
-
-    [Parameter(Mandatory = $false, HelpMessage = "Mostra questo messaggio di aiuto.")]
-    [switch]$Help
+    [switch]$EnableLog
 )
-
-# Definizione dei preset
-$Presets = @{
-    "CSharp" = @{
-        Mode = 'extensions'
-        Extensions = '.cs', '.xaml'
-        OutputFile = 'CombinedFile.cs'
-        Recurse = $true
-        ExcludePaths = 'Properties', 'obj', 'bin'
-        ExcludeFilePatterns = '.*\.g\.i\.cs$', '.*\.g\.cs$', '.*\.designer\.cs$', '.*AssemblyInfo\.cs$', '^auto-generated'
-    }
-    # Puoi aggiungere altri preset qui
-}
 
 # Funzioni ausiliarie
 
@@ -281,9 +259,9 @@ function Get-AllFiles {
         }
 
         foreach ($item in $items) {
-            # Salta i percorsi esclusi
-            if ($ExcludePaths -and $ExcludePaths.Contains($item.FullName, [System.StringComparer]::InvariantCultureIgnoreCase)) {
-                Write-Log "Percorso escluso: $($item.FullName)" "DEBUG"
+            # Salta i percorsi esclusi utilizzando la funzione Is-PathExcluded
+            if (Is-PathExcluded -FilePath $item.FullName -ExcludedPaths $ExcludePaths -ExcludedFiles $ExcludeFiles -ExcludedFilePatterns $ExcludeFilePatterns) {
+                Write-Log "Percorso o file escluso: $($item.FullName)" "DEBUG"
                 continue
             }
 
@@ -291,26 +269,32 @@ function Get-AllFiles {
                 # Controlla se è un reparse point (junction o symbolic link)
                 if ($FollowReparsePoints -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
                     # Risolvi il target della reparse point
-                    $linkTarget = $item.LinkTarget
-                    if ($linkTarget) {
-                        # Se LinkTarget è relativo, risolvilo rispetto al CurrentPath
-                        if (-not [System.IO.Path]::IsPathRooted($linkTarget)) {
-                            $resolvedTarget = Resolve-Path -Path (Join-Path -Path $CurrentPath -ChildPath $linkTarget) -ErrorAction SilentlyContinue
-                        }
-                        else {
-                            $resolvedTarget = Resolve-Path -Path $linkTarget -ErrorAction SilentlyContinue
-                        }
+                    try {
+                        $linkTarget = (Get-Item $item.FullName).LinkType
+                        $linkTargetPath = (Get-Item $item.FullName).Target
+                        if ($linkTargetPath) {
+                            if (-not [System.IO.Path]::IsPathRooted($linkTargetPath)) {
+                                $resolvedTarget = Resolve-Path -Path (Join-Path -Path $CurrentPath -ChildPath $linkTargetPath) -ErrorAction SilentlyContinue
+                            }
+                            else {
+                                $resolvedTarget = Resolve-Path -Path $linkTargetPath -ErrorAction SilentlyContinue
+                            }
 
-                        if ($resolvedTarget) {
-                            Write-Log "Navigando una directory reparse point: $($item.FullName) -> $($resolvedTarget.Path)" "DEBUG"
-                            Recursive-GetFiles -CurrentPath $resolvedTarget.Path
+                            if ($resolvedTarget) {
+                                Write-Log "Navigando una directory reparse point: $($item.FullName) -> $($resolvedTarget.Path)" "DEBUG"
+                                Recursive-GetFiles -CurrentPath $resolvedTarget.Path
+                            }
+                            else {
+                                Write-Log "Impossibile risolvere il target della reparse point: $($item.FullName)" "WARNING"
+                            }
                         }
                         else {
-                            Write-Log "Impossibile risolvere il target della reparse point: $($item.FullName)" "WARNING"
+                            Write-Log "Reparse point senza target valido: $($item.FullName)" "WARNING"
                         }
                     }
-                    else {
-                        Write-Log "Reparse point senza target valido: $($item.FullName)" "WARNING"
+                    catch {
+                        Write-Log "Errore nel risolvere il target della reparse point: $($item.FullName) - $_" "ERROR"
+                        continue
                     }
                 }
                 elseif ($Recurse) {
@@ -318,27 +302,7 @@ function Get-AllFiles {
                 }
             }
             else {
-                # File: verifica esclusioni
-                if ($ExcludeFiles -and $ExcludeFiles.Contains([System.IO.Path]::GetFileName($item.FullName), [System.StringComparer]::InvariantCultureIgnoreCase)) {
-                    Write-Log "File escluso: $($item.FullName)" "DEBUG"
-                    continue
-                }
-
-                if ($ExcludeFilePatterns) {
-                    $excluded = $false
-                    foreach ($pattern in $ExcludeFilePatterns) {
-                        if ($item.FullName -match $pattern) {
-                            Write-Log "File escluso per pattern regex: $($item.FullName) corrisponde a $pattern" "DEBUG"
-                            $excluded = $true
-                            break
-                        }
-                    }
-                    if ($excluded) {
-                        continue
-                    }
-                }
-
-                # Aggiungi il file
+                # File: verifica esclusioni già gestite sopra
                 Write-Log "File incluso: $($item.FullName)" "DEBUG"
                 $item.FullName
             }
@@ -454,17 +418,43 @@ function Show-Message {
     Write-Host $Message -ForegroundColor $Color
 }
 
-# Funzione per mostrare l'aiuto personalizzato
 function Show-CustomHelp {
     param ()
 
-    Write-Host "Usage: .\Combine-Files.ps1 [options]" -ForegroundColor Cyan
+    Write-Host "Uso: .\Combine-Files.ps1 [opzioni]" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Options:" -ForegroundColor Yellow
+    Write-Host "Opzioni:" -ForegroundColor Yellow
     Get-Help about_Script_Parameters | Select-Object -ExpandProperty Content
 }
 
+# Definizione dei preset
+$Presets = @{
+    "CSharp" = @{
+        Mode = 'extensions'
+        Extensions = '.cs', '.xaml'
+        OutputFile = 'CombinedFile.cs'
+        Recurse = $true
+        ExcludePaths = 'Properties', 'obj', 'bin'
+        ExcludeFilePatterns = '.*\.g\.i\.cs$', '.*\.g\.cs$', '.*\.designer\.cs$', '.*AssemblyInfo\.cs$', '^auto-generated'
+    }
+    # Puoi aggiungere altri preset qui
+}
+
 # Inizio dello script
+
+# Gestione del parametro -Help e /help
+if ($Help) {
+    Show-CustomHelp
+    return
+}
+
+# Verifica se /help è stato passato come argomento
+foreach ($arg in $args) {
+    if ($arg -ieq "/help") {
+        Show-CustomHelp
+        return
+    }
+}
 
 # Definisci un percorso per il log solo se EnableLog è specificato
 $sourcePath = Get-Location
@@ -481,12 +471,6 @@ if ($EnableLog) {
         Write-Host "Impossibile creare il file di log: $logFile" -ForegroundColor Red
         return
     }
-}
-
-# Gestione del parametro -Help
-if ($Help) {
-    Show-CustomHelp
-    return
 }
 
 # Gestione del parametro -ListPresets
@@ -639,7 +623,6 @@ $maxSizeBytes = if ($MaxSize) { Convert-SizeToBytes $MaxSize } else { [int64]::M
 Write-Log "Inizio raccolta dei file da processare." "INFO"
 Show-Message "Inizio raccolta dei file da processare." "Cyan"
 
-# Recupera i file secondo la modalità
 switch ($Mode) {
     'list' {
         $filesToProcess = @()
@@ -647,7 +630,7 @@ switch ($Mode) {
             $filePath = Join-Path -Path $sourcePath -ChildPath $file
             $resolved = Resolve-Path -Path $filePath -ErrorAction SilentlyContinue
             if ($resolved -and (Test-Path $resolved.Path -PathType Leaf)) {
-                if (-not (Is-PathExcluded $resolved.Path $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)) {
+                if (-not (Is-PathExcluded -FilePath $resolved.Path -ExcludedPaths $fullExcludePaths -ExcludedFiles $fullExcludeFiles -ExcludedFilePatterns $fullExcludeFilePatterns)) {
                     # Escludi i file con contenuto auto-generated
                     if ((Get-Content -Path $resolved.Path -ErrorAction SilentlyContinue | Select-String -Pattern "<auto-generated>").Count -eq 0) {
                         $filesToProcess += $resolved.Path
@@ -668,7 +651,20 @@ switch ($Mode) {
         }
     }
     'extensions' {
-        $filesToProcess = Get-AllFiles -Path $sourcePath -Recurse:$Recurse -FollowReparsePoints:$Recurse -ExcludePaths $fullExcludePaths -ExcludeFiles $fullExcludeFiles -ExcludeFilePatterns $fullExcludeFilePatterns -EnableLog:$EnableLog
+        $allFiles = Get-AllFiles -Path $sourcePath -Recurse:$Recurse -FollowReparsePoints:$Recurse -ExcludePaths $fullExcludePaths -ExcludeFiles $fullExcludeFiles -ExcludeFilePatterns $fullExcludeFilePatterns -EnableLog:$EnableLog
+        $filesToProcess = $allFiles | Where-Object {
+            foreach ($ext in $Extensions) {
+                if ($_.EndsWith($ext, [System.StringComparison]::InvariantCultureIgnoreCase)) {
+                    # Escludi i file con contenuto auto-generated
+                    if ((Get-Content -Path $_ -ErrorAction SilentlyContinue | Select-String -Pattern "<auto-generated>").Count -eq 0) {
+                        return $true
+                    }
+                }
+            }
+            return $false
+        }
+        $filesToProcess = $filesToProcess | Sort-Object -Unique
+        Write-Log "Totale file da processare dopo filtraggio per estensioni: $($filesToProcess.Count)" "INFO"
     }
     'regex' {
         $allFiles = Get-AllFiles -Path $sourcePath -Recurse:$Recurse -FollowReparsePoints:$Recurse -ExcludePaths $fullExcludePaths -ExcludeFiles $fullExcludeFiles -ExcludeFilePatterns $fullExcludeFilePatterns -EnableLog:$EnableLog
@@ -715,10 +711,8 @@ switch ($Mode) {
         $filesToProcess = Start-InteractiveSelection -InitialFiles $filesFiltered -SourcePath $sourcePath
     }
     default {
-        Write-Error "Modalità '$Mode' non riconosciuta o non supportata."
-        Write-Log "Errore: Modalità '$Mode' non riconosciuta o non supportata." "ERROR"
-        Show-Message "Errore: Modalità '$Mode' non riconosciuta o non supportata." "Red"
-        return
+        # Modalità non specificata: raccogli tutti i file
+        $filesToProcess = Get-AllFiles -Path $sourcePath -Recurse:$Recurse -FollowReparsePoints:$Recurse -ExcludePaths $fullExcludePaths -ExcludeFiles $fullExcludeFiles -ExcludeFilePatterns $fullExcludeFilePatterns -EnableLog:$EnableLog
     }
 }
 
@@ -755,7 +749,7 @@ if ($MinDate -or $MaxDate -or $MinSize -or $MaxSize) {
 # Filtra nuovamente per escludere eventuali percorsi non gestiti
 if ($fullExcludePaths -or $fullExcludeFiles -or $fullExcludeFilePatterns) {
     $filesToProcess = $filesToProcess | Where-Object {
-        -not (Is-PathExcluded $_ $fullExcludePaths $fullExcludeFiles $fullExcludeFilePatterns)
+        -not (Is-PathExcluded -FilePath $_ -ExcludedPaths $fullExcludePaths -ExcludedFiles $fullExcludeFiles -ExcludedFilePatterns $fullExcludeFilePatterns)
     }
     Write-Log "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)" "INFO"
     Show-Message "Totale file da processare dopo esclusione finale: $($filesToProcess.Count)" "Cyan"
