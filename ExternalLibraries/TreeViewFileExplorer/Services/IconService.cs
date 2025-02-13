@@ -4,7 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using TreeViewFileExplorer.Enums;
-using TreeViewFileExplorer.Managers;
+using TreeViewFileExplorer.Manager;
 
 namespace TreeViewFileExplorer.Services
 {

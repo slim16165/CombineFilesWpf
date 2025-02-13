@@ -3,7 +3,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using TreeViewFileExplorer.Events;
-using TreeViewFileExplorer.Managers;
+using TreeViewFileExplorer.Manager;
 using TreeViewFileExplorer.Services;
 using TreeViewFileExplorer.ViewModels;
 

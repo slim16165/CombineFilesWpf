@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 using TreeViewFileExplorer.Enums;
 using TreeViewFileExplorer.Structs;
 
-namespace TreeViewFileExplorer.Managers
+namespace TreeViewFileExplorer.Manager
 {
     /// <summary>
     /// Provides methods to interact with the Windows Shell to retrieve icons.

@@ -1,6 +1,4 @@
-﻿// FileListControl.xaml.cs
-
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
 using TreeViewFileExplorer.Model;
