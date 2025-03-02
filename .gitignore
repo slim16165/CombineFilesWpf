@@ -365,3 +365,4 @@ FodyWeavers.xsd
 /ExternalLibraries/TreeViewFileExplorer/CombinedFile.cs
 /CombineFiles.zip
 /CombineFiles.Core/CombinedFile.cs
+/CombineFiles.ConsoleApp/CombinedFile.cs
