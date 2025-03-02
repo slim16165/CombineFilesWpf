@@ -5,9 +5,10 @@ namespace CombineFiles.Core.Configuration
 {
     public class CombineFilesOptions
     {
+        public bool Help { get; set; }
         public bool EnableLog { get; set; }
         public bool ListPresets { get; set; }
-        public string Preset { get; set; }
+        public string? Preset { get; set; }
         public string? Mode { get; set; }
         public List<string> Extensions { get; set; } = new();
         public List<string> ExcludePaths { get; set; } = new();

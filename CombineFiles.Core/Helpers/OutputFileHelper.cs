@@ -15,12 +15,6 @@ namespace CombineFiles.ConsoleApp.Helpers
             // Se vuoi un header CSV o un array JSON iniziale, gestiscilo qui.
             File.WriteAllText(outputFile, string.Empty, encoding);
             logger.WriteLog($"File di output creato/svuotato: {outputFile}", "INFO");
-
-            // Esempio di aggiunta header CSV:
-            // if (outputFormat.Equals("csv", StringComparison.OrdinalIgnoreCase))
-            // {
-            //     File.AppendAllText(outputFile, "col1,col2\r\n", encoding);
-            // }
         }
     }
 }

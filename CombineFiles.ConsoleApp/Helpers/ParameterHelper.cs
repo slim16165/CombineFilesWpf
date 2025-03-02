@@ -11,10 +11,7 @@ namespace CombineFiles.ConsoleApp.Helpers
         /// </summary>
         public static bool CheckHelp(CombineFilesOptions options)
         {
-            // Se hai un campo "public bool Help { get; set; }" in CombineFilesOptions, potresti fare:
-            // return options.Help;
-            // Altrimenti, se preferisci un'altra logica, regolati di conseguenza.
-            return false;
+            return options.Help;
         }
 
         /// <summary>
