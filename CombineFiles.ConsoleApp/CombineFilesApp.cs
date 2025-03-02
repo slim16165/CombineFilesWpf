@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using CombineFiles.ConsoleApp.Core;
+using CombineFiles.ConsoleApp.Helpers;
 using CombineFiles.ConsoleApp.Infrastructure;
 
 namespace CombineFiles.ConsoleApp
@@ -14,23 +15,17 @@ namespace CombineFiles.ConsoleApp
     {
         public static void Execute(CombineFilesOptions options)
         {
-            // 1) Gestione help (se hai un flag Help o qualcosa di simile)
-            if (CheckHelp(options))
+            // 1) Gestione help
+            if (ParameterHelper.CheckHelp(options))
             {
-                PrintHelp();
+                ParameterHelper.PrintHelp();
                 return;
             }
 
             // 2) Gestione LIST PRESETS
             if (options.ListPresets)
             {
-                Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine("Preset disponibili:");
-                Console.ResetColor();
-                foreach (var pName in PresetManager.Presets.Keys)
-                    Console.WriteLine($"- {pName}");
-
-                // Fine esecuzione se l'utente ha chiesto solo la lista
+                ParameterHelper.PrintPresetList();
                 return;
             }
 
@@ -41,27 +36,26 @@ namespace CombineFiles.ConsoleApp
             }
             catch (Exception ex)
             {
-                // Se il preset non esiste, esci
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine(ex.Message);
                 Console.ResetColor();
                 return;
             }
 
-            // 4) Inizializza il logger (se abilitato)
-            var sourcePath = Directory.GetCurrentDirectory();
+            // 4) Inizializza il logger
+            string sourcePath = Directory.GetCurrentDirectory();
             string logFilePath = Path.Combine(sourcePath, "CombineFiles.log");
             var logger = new Logger(logFilePath, options.EnableLog);
             logger.WriteLog("Inizio operazione di combinazione file.", "INFO");
 
-            // 5) Validazione parametri (Mode, Extensions, RegexPatterns, etc.)
-            if (!ValidateParameters(options, logger))
+            // 5) Validazione parametri
+            if (!ParameterHelper.ValidateParameters(options, logger))
                 return;
 
-            // 6) Normalizza eventuali ExcludePaths in percorsi assoluti
-            var normalizedExcludePaths = NormalizeExcludePaths(options.ExcludePaths, sourcePath, logger);
+            // 6) Normalizza exclude paths
+            var normalizedExcludePaths = PathHelper.NormalizeExcludePaths(options.ExcludePaths, sourcePath, logger);
 
-            // 7) Se non si scrive su console, escludi il file di output (per evitare che finisca nei risultati)
+            // 7) Escludi il file di output, se non si scrive in console
             if (!options.OutputToConsole && !string.IsNullOrWhiteSpace(options.OutputFile))
             {
                 var outFileName = Path.GetFileName(options.OutputFile);
@@ -72,7 +66,7 @@ namespace CombineFiles.ConsoleApp
                 }
             }
 
-            // 8) Avvia la raccolta dei file
+            // 8) Raccolta file (in base a Mode)
             logger.WriteLog("Inizio raccolta file...", "INFO");
             var fileCollector = new FileCollector(
                 logger,
@@ -81,51 +75,20 @@ namespace CombineFiles.ConsoleApp
                 options.ExcludeFilePatterns
             );
 
-            List<string> filesToProcess;
-            switch (options.Mode?.ToLowerInvariant())
-            {
-                case "list":
-                    // L'utente fornisce direttamente la lista di file
-                    filesToProcess = HandleListMode(options, logger);
-                    break;
-
-                case "extensions":
-                    // Ricerca di tutti i file e filtra per estensione
-                    filesToProcess = HandleExtensionsMode(options, logger, fileCollector);
-                    break;
-
-                case "regex":
-                    // Ricerca di tutti i file e filtra con pattern regex
-                    filesToProcess = HandleRegexMode(options, logger, fileCollector);
-                    break;
-
-                case "interactiveselection":
-                    // Prima ottieni i file per estensione
-                    filesToProcess = HandleExtensionsMode(options, logger, fileCollector);
-
-                    // Poi avvia la selezione interattiva (apre notepad per la modifica)
-                    filesToProcess = fileCollector.StartInteractiveSelection(filesToProcess, sourcePath);
-                    break;
-
-                default:
-                    // Se non specificato, prendi tutti i file
-                    filesToProcess = fileCollector.GetAllFiles(sourcePath, options.Recurse);
-                    break;
-            }
-
+            List<string> filesToProcess = FileCollectionHelper.CollectFiles(options, logger, fileCollector, sourcePath);
             logger.WriteLog($"Numero file iniziali: {filesToProcess.Count}", "INFO");
 
-            // 9) Filtro per date e dimensioni
-            filesToProcess = FilterByDateAndSize(filesToProcess, options, logger);
+            // 9) Filtri su date e dimensioni
+            filesToProcess = FileFilterHelper.FilterByDateAndSize(filesToProcess, options, logger);
 
-            // 10) Filtro eventuali file contenenti <auto-generated> (come da script PS1)
+            // 10) Filtro eventuali file <auto-generated>
             filesToProcess = filesToProcess
-                .Where(f => !FileContainsAutoGenerated(f, logger))
+                .Where(f => !FileFilterHelper.FileContainsAutoGenerated(f, logger))
                 .ToList();
 
             logger.WriteLog($"Totale file dopo esclusione 'auto-generated': {filesToProcess.Count}", "INFO");
 
-            // 11) Se dopo tutti i filtri non c’è nulla, esci
+            // 11) Verifica se ci sono file da processare
             if (filesToProcess.Count == 0)
             {
                 logger.WriteLog("Nessun file trovato per l'unione.", "WARNING");
@@ -133,18 +96,15 @@ namespace CombineFiles.ConsoleApp
                 return;
             }
 
-            // 12) Scegli l’Encoding di uscita.
-            // Se vuoi una gestione “multipla” come in PowerShell (UTF8, ASCII, etc.), 
-            // aggiungi una proprietà a CombineFilesOptions (tipo "OutputEncoding") e un helper.
-            // Qui, per semplicità, usiamo sempre UTF8 se scriviamo su file.
+            // 12) Scegli encoding (semplice: UTF8)
             Encoding selectedEncoding = Encoding.UTF8;
 
-            // 13) Prepara l’output file (svuotandolo, come in PowerShell Out-File -Force) se non è console
+            // 13) Prepara output file
             if (!options.OutputToConsole && !string.IsNullOrWhiteSpace(options.OutputFile))
             {
                 try
                 {
-                    PrepareOutputFile(options.OutputFile, options.OutputFormat, selectedEncoding, logger);
+                    OutputFileHelper.PrepareOutputFile(options.OutputFile, options.OutputFormat, selectedEncoding, logger);
                 }
                 catch (Exception ex)
                 {
@@ -154,7 +114,7 @@ namespace CombineFiles.ConsoleApp
                 }
             }
 
-            // 14) Avvia la fase di “merge” (scrive header e contenuto, gestisce skip dei duplicati via hash)
+            // 14) Merge finale
             var fileMerger = new FileMerger(
                 logger,
                 options.OutputToConsole,
@@ -176,276 +136,5 @@ namespace CombineFiles.ConsoleApp
                 Console.WriteLine("Operazione completata con output a console.");
             }
         }
-
-        #region Metodi di supporto
-
-        /// <summary>
-        /// Verifica se l'utente ha richiesto l'help (ad esempio, se hai un bool Help in CombineFilesOptions).
-        /// </summary>
-        private static bool CheckHelp(CombineFilesOptions options)
-        {
-            // Se hai una proprietà booleana in CombineFilesOptions, ad es. "public bool Help { get; set; }"
-            // potresti semplicemente fare:
-            // return options.Help;
-            // Oppure controllare se Mode == "help", a seconda del tuo design.
-            return false;
-        }
-
-        /// <summary>
-        /// Stampa un messaggio di help.
-        /// </summary>
-        private static void PrintHelp()
-        {
-            Console.WriteLine("Uso: CombineFiles [--preset <PresetName>] [--mode <list|extensions|regex|InteractiveSelection>] ...");
-            Console.WriteLine("Parametri disponibili:");
-            Console.WriteLine("  - ListPresets: elenca i preset disponibili");
-            Console.WriteLine("  - Mode: list, extensions, regex, InteractiveSelection");
-            Console.WriteLine("  - FileList: elenco file in modalità 'list'");
-            Console.WriteLine("  - Extensions: estensioni in modalità 'extensions'");
-            Console.WriteLine("  - RegexPatterns: pattern in modalità 'regex'");
-            Console.WriteLine("  - OutputFile: specifica il file di destinazione (default: CombinedFile.txt)");
-            Console.WriteLine("  - OutputToConsole: scrive l'output a schermo invece che su file");
-            Console.WriteLine("  - Recurse: ricerca ricorsiva nelle sottocartelle");
-            Console.WriteLine("  - ExcludePaths, ExcludeFiles, ExcludeFilePatterns: filtri di esclusione");
-            Console.WriteLine("  - MinSize, MaxSize, MinDate, MaxDate: filtri aggiuntivi");
-            Console.WriteLine("  - FileNamesOnly: se True, scrive solo i nomi dei file invece che i contenuti");
-            // etc.
-        }
-
-        /// <summary>
-        /// Esegue validazioni base su parametri essenziali, in modo simile allo script PS1.
-        /// </summary>
-        private static bool ValidateParameters(CombineFilesOptions options, Logger logger)
-        {
-            // Se Mode è 'list', la FileList deve contenere almeno un file
-            if ((options.Mode?.Equals("list", StringComparison.OrdinalIgnoreCase) ?? false)
-                && (options.FileList == null || options.FileList.Count == 0))
-            {
-                logger.WriteLog("La modalità 'list' richiede almeno un FileList.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'list' -> -FileList mancante o vuota.");
-                return false;
-            }
-
-            // Se Mode è 'extensions', devi avere almeno un'estensione
-            if ((options.Mode?.Equals("extensions", StringComparison.OrdinalIgnoreCase) ?? false)
-                && (options.Extensions == null || options.Extensions.Count == 0))
-            {
-                logger.WriteLog("La modalità 'extensions' richiede -Extensions.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'extensions' -> -Extensions mancante o vuota.");
-                return false;
-            }
-
-            // Se Mode è 'regex', devi avere almeno un pattern
-            if ((options.Mode?.Equals("regex", StringComparison.OrdinalIgnoreCase) ?? false)
-                && (options.RegexPatterns == null || options.RegexPatterns.Count == 0))
-            {
-                logger.WriteLog("La modalità 'regex' richiede -RegexPatterns.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'regex' -> -RegexPatterns mancante o vuota.");
-                return false;
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Normalizza i percorsi da escludere in percorsi assoluti, loggando eventuali avvisi se non trovati.
-        /// </summary>
-        private static List<string> NormalizeExcludePaths(List<string> excludePaths, string basePath, Logger logger)
-        {
-            var fullExcludePaths = new List<string>();
-            if (excludePaths == null) return fullExcludePaths;
-
-            foreach (var p in excludePaths)
-            {
-                // Se non è assoluto, costruisci su basePath
-                string candidate = p;
-                if (!Path.IsPathRooted(candidate))
-                    candidate = Path.Combine(basePath, p);
-
-                if (Directory.Exists(candidate))
-                {
-                    fullExcludePaths.Add(candidate);
-                    logger.WriteLog($"Percorso escluso aggiunto: {candidate}", "DEBUG");
-                }
-                else
-                {
-                    // Se non esiste come directory, avvisa (in alcuni casi potresti volerlo escludere come substring)
-                    logger.WriteLog($"Directory di esclusione non trovata o non valida: {candidate}", "WARNING");
-                }
-            }
-            return fullExcludePaths;
-        }
-
-        /// <summary>
-        /// Modalità list: l’utente fornisce direttamente i file da processare
-        /// (equivalente a -Mode list e -FileList in PowerShell).
-        /// </summary>
-        private static List<string> HandleListMode(CombineFilesOptions options, Logger logger)
-        {
-            var filesToProcess = new List<string>();
-            string basePath = Directory.GetCurrentDirectory();
-
-            foreach (var relativeFile in options.FileList)
-            {
-                string absPath = Path.IsPathRooted(relativeFile)
-                    ? relativeFile
-                    : Path.Combine(basePath, relativeFile);
-
-                if (File.Exists(absPath))
-                {
-                    logger.WriteLog($"File incluso dalla lista: {absPath}", "INFO");
-                    filesToProcess.Add(absPath);
-                }
-                else
-                {
-                    logger.WriteLog($"File non trovato: {absPath}", "WARNING");
-                    Console.WriteLine($"Avviso: File non trovato: {absPath}");
-                }
-            }
-
-            return filesToProcess;
-        }
-
-        /// <summary>
-        /// Modalità extensions: prende tutti i file (ricorsivo o meno) e poi filtra per estensione.
-        /// </summary>
-        private static List<string> HandleExtensionsMode(CombineFilesOptions options, Logger logger, FileCollector collector)
-        {
-            var basePath = Directory.GetCurrentDirectory();
-            var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-            var matched = new List<string>();
-
-            foreach (var file in allFiles)
-            {
-                foreach (var ext in options.Extensions)
-                {
-                    if (file.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
-                    {
-                        matched.Add(file);
-                        break; // Evita di aggiungere più volte lo stesso file se combacia con +estensioni
-                    }
-                }
-            }
-
-            matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            logger.WriteLog($"File da processare dopo filtraggio per estensioni: {matched.Count}", "INFO");
-            return matched;
-        }
-
-        /// <summary>
-        /// Modalità regex: prende tutti i file e poi filtra con uno o più pattern RegEx.
-        /// </summary>
-        private static List<string> HandleRegexMode(CombineFilesOptions options, Logger logger, FileCollector collector)
-        {
-            var basePath = Directory.GetCurrentDirectory();
-            var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-            var matched = new List<string>();
-
-            foreach (var file in allFiles)
-            {
-                foreach (var pattern in options.RegexPatterns)
-                {
-                    if (System.Text.RegularExpressions.Regex.IsMatch(file, pattern))
-                    {
-                        matched.Add(file);
-                        break; // Evita duplicati
-                    }
-                }
-            }
-
-            matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            logger.WriteLog($"File da processare (regex): {matched.Count}", "INFO");
-            return matched;
-        }
-
-        /// <summary>
-        /// Filtra la lista di file in base a MinDate, MaxDate, MinSize, MaxSize.
-        /// </summary>
-        private static List<string> FilterByDateAndSize(List<string> files, CombineFilesOptions options, Logger logger)
-        {
-            // Converti le stringhe MinSize/MaxSize in byte
-            long minSize = string.IsNullOrWhiteSpace(options.MinSize)
-                ? 0
-                : FileHelper.ConvertSizeToBytes(options.MinSize);
-            long maxSize = string.IsNullOrWhiteSpace(options.MaxSize)
-                ? long.MaxValue
-                : FileHelper.ConvertSizeToBytes(options.MaxSize);
-
-            DateTime? minDate = options.MinDate;
-            DateTime? maxDate = options.MaxDate;
-
-            var filtered = new List<string>();
-
-            foreach (var f in files)
-            {
-                try
-                {
-                    var info = new FileInfo(f);
-
-                    // Check dimensioni
-                    bool sizeOk = info.Length >= minSize && info.Length <= maxSize;
-
-                    // Check date
-                    bool dateOk = (!minDate.HasValue || info.LastWriteTime >= minDate.Value)
-                               && (!maxDate.HasValue || info.LastWriteTime <= maxDate.Value);
-
-                    if (sizeOk && dateOk)
-                        filtered.Add(f);
-                }
-                catch (Exception ex)
-                {
-                    logger.WriteLog($"Errore nell'accesso a {f}: {ex.Message}", "WARNING");
-                }
-            }
-
-            logger.WriteLog($"File rimasti dopo filtro date/dimensioni: {filtered.Count}", "INFO");
-            return filtered;
-        }
-
-        /// <summary>
-        /// Ritorna true se il file contiene la stringa "auto-generated", false altrimenti.
-        /// Replichiamo la logica di PowerShell che esclude i file auto-generati.
-        /// </summary>
-        private static bool FileContainsAutoGenerated(string filePath, Logger logger)
-        {
-            try
-            {
-                // Per evitare di leggere file enormi, puoi limitarti alle prime N righe se preferisci:
-                // var lines = File.ReadLines(filePath).Take(50); 
-                // In questo esempio leggo tutto:
-                var lines = File.ReadAllLines(filePath);
-
-                foreach (var line in lines)
-                {
-                    if (line.Contains("<auto-generated>"))
-                    {
-                        logger.WriteLog($"File escluso per contenuto auto-generated: {filePath}", "INFO");
-                        return true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.WriteLog($"Impossibile controllare 'auto-generated' su {filePath}: {ex.Message}", "WARNING");
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Svuota o crea il file di output (equivalente a "Out-File -Force" in PowerShell).
-        /// </summary>
-        private static void PrepareOutputFile(string outputFile, string outputFormat, Encoding encoding, Logger logger)
-        {
-            // Se vuoi, puoi differenziare la creazione in base a outputFormat (csv/json).
-            // Per semplicità, qui lo trattiamo tutti allo stesso modo:
-            File.WriteAllText(outputFile, string.Empty, encoding);
-            logger.WriteLog($"File di output creato/svuotato: {outputFile}", "INFO");
-
-            // Se desideri aggiungere un header CSV o un array JSON vuoto, puoi farlo qui.
-            // Esempio (solo se outputFormat == "csv"): File.AppendAllText(outputFile, "col1,col2\n", encoding);
-        }
-
-        #endregion
     }
 }

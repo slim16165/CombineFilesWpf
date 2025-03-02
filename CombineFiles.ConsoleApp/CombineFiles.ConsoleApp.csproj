@@ -45,12 +45,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\ParameterHelper.cs" />
     <Compile Include="CombineFilesApp.cs" />
     <Compile Include="CombineFilesOptions.cs" />
     <Compile Include="Core\FileCollector.cs" />
     <Compile Include="Core\FileMerger.cs" />
-    <Compile Include="Infrastructure\FileHelper.cs" />
+    <Compile Include="Helpers\FileCollectionHelper.cs" />
+    <Compile Include="Helpers\FileFilterHelper.cs" />
+    <Compile Include="Helpers\FileHelper.cs" />
     <Compile Include="Infrastructure\Logger.cs" />
+    <Compile Include="Helpers\OutputFileHelper.cs" />
+    <Compile Include="Helpers\PathHelper.cs" />
     <Compile Include="PresetManager.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
