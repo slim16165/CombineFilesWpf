@@ -4,7 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using CombineFiles.ConsoleApp.Core;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Helpers
 {

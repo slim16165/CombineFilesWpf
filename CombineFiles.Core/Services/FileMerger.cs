@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Core;
 

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace CombineFiles.ConsoleApp.Infrastructure;
+namespace CombineFiles.Core.Infrastructure;
 
 public class Logger
 {

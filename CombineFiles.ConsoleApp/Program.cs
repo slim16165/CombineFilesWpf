@@ -1,25 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using CombineFiles.Core.Configuration;
+using CombineFiles.ConsoleApp.Helpers;
 
-namespace CombineFiles.ConsoleApp;
-
-class Program
+namespace CombineFiles.ConsoleApp
 {
-    static void Main(string[] args)
+    class Program
     {
-        // Esempio di parametri (equivalenti a: .\Combine-Files.ps1 -Mode 'extensions' -Extensions '.cs','.xaml' -Recurse)
-        var options = new CombineFilesOptions
+        static void Main(string[] args)
         {
-            Mode = "extensions",
-            Extensions = new List<string> { ".cs", ".xaml" },
-            Recurse = true,
-            EnableLog = true
-        };
+            // Se non vengono passati argomenti, usiamo valori di default per testare il comportamento
+            CombineFilesOptions options = new CombineFilesOptions();
+            if (args.Length == 0)
+            {
+                options.Preset = "CSharp";
+                options.Mode = "extensions";
+                options.Extensions = new List<string> { ".cs", ".xaml" };
+                options.Recurse = true;
+                options.EnableLog = true;
+                // Altre proprietà (ExcludePaths, OutputFile, etc.) possono essere impostate dal preset
+            }
+            else
+            {
+                // Qui puoi implementare un semplice parser degli argomenti
+                // Ad esempio, potresti interpretare il primo argomento come -Preset e così via.
+                // Per semplicità, usiamo i default se non sviluppi un parser completo.
+                options.Preset = args[0];
+            }
 
-        // Esegui la logica di combinazione
-        CombineFilesApp.Execute(options);
+            CombineFilesApp.Execute(options);
 
-        Console.WriteLine("Fine elaborazione");
-        Console.ReadLine();
+            Console.WriteLine("Fine elaborazione");
+        }
     }
 }

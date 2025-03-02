@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using System.Text;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Helpers
 {

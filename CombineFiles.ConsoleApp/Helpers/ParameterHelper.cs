@@ -1,5 +1,6 @@
 ﻿using System;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Helpers
 {

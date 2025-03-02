@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Core;
 

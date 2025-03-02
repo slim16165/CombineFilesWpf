@@ -1,13 +1,13 @@
-﻿// CombineFilesApp.cs
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using CombineFiles.ConsoleApp.Core;
 using CombineFiles.ConsoleApp.Helpers;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Helpers;
+using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp
 {

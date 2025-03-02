@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace CombineFiles.ConsoleApp
+namespace CombineFiles.Core.Configuration
 {
     public class CombineFilesOptions
     {
