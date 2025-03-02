@@ -44,15 +44,7 @@ public partial class MainWindow : Window
         {
             string content = File.ReadAllText(selectedItem.FilePath);
             // Esempio: se il file è JSON, prova a formattarlo
-            if (selectedItem.FilePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-            {
-                content = FileProcessor.PrettyPrintJson(content);
-            }
-            else if (selectedItem.FilePath.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                content = FileProcessor.ConvertCsvToTable(content);
-            }
-            // Aggiungi altre formattazioni se necessario
+            
 
             PreviewTextBox.Text = content;
         }

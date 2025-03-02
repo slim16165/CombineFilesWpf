@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace CombineFiles.Core;
+﻿namespace CombineFiles.Core.Configuration;
 
 public class FileSearchConfig
 {
@@ -14,14 +11,7 @@ public class FileSearchConfig
 
 public class FileMergeConfig
 {
-    private string _outputFolder;
-
-    public string OutputFolder
-    {
-        get => _outputFolder;
-        set => _outputFolder = Directory.Exists(value) ? value : throw new ArgumentException("Cartella di output non valida");
-    }
-
+    public string OutputFolder { get; set; }
     public string OutputFileName { get; set; }      // Nome del file di output
     public bool OneFilePerExtension { get; set; }   // Se creare un file per ogni estensione
     public bool OverwriteFiles { get; set; }        // Se sovrascrivere i file esistenti

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using CombineFiles.Core.Configuration;
 
 namespace CombineFiles.Core.Helpers;
 

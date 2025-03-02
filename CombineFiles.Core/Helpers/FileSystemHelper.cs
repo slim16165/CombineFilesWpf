@@ -1,13 +1,18 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Linq;
 
-namespace CombineFiles.Core;
+namespace CombineFiles.Core.Helpers;
 
 public static class FileSystemHelper
 {
     /// <summary>
-    /// Copia la directory sorgente in quella di destinazione.
+    /// Copia una directory sorgente nella destinazione.
     /// </summary>
+    /// <param name="sourceDir">Percorso della directory sorgente.</param>
+    /// <param name="destinationDir">Percorso della directory di destinazione.</param>
+    /// <param name="recursive">Se copiare anche le sottocartelle.</param>
+    /// <param name="overwrite">Se sovrascrivere i file esistenti (default: false).</param>
     public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive, bool overwrite = false)
     {
         var dir = new DirectoryInfo(sourceDir);
@@ -17,7 +22,14 @@ public static class FileSystemHelper
         foreach (var file in dir.GetFiles())
         {
             string targetPath = Path.Combine(destinationDir, file.Name);
-            file.CopyTo(targetPath, overwrite);
+            try
+            {
+                file.CopyTo(targetPath, overwrite);
+            }
+            catch (Exception ex)
+            {
+                throw new IOException($"Failed to copy {file.FullName} to {targetPath}: {ex.Message}", ex);
+            }
         }
 
         if (recursive)
@@ -29,7 +41,6 @@ public static class FileSystemHelper
             }
         }
     }
-
     /// <summary>
     /// Sposta la directory o il file dalla posizione source a destination.
     /// </summary>

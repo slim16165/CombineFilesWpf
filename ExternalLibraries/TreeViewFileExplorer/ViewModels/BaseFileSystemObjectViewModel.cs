@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using CombineFiles.Core;
 using CombineFiles.Core.Helpers;
+using CombineFiles.Core.Services;
 // Per FileSystemHelper.IsValidName, se lo vuoi mantenere
 using TreeViewFileExplorer.Model;
 using TreeViewFileExplorer.Services;

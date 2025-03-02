@@ -3,8 +3,9 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using CombineFiles.Core.Helpers;
 
-namespace CombineFiles.Core.Helpers;
+namespace CombineFiles.Core.Services;
 
 public interface IFileOperationsService
 {

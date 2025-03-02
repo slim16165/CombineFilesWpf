@@ -51,11 +51,15 @@
     <Reference Include="PresentationFramework" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Handlers\CsvContentHandler.cs" />
+    <Compile Include="Handlers\DefaultContentHandler.cs" />
     <Compile Include="FileProcessor.cs" />
-    <Compile Include="FileSystemHelper.cs" />
+    <Compile Include="Helpers\FileSystemHelper.cs" />
     <Compile Include="Helpers\FileFilterHelper.cs" />
-    <Compile Include="Helpers\FileOperationsService.cs" />
-    <Compile Include="FileProcessingConfig.cs" />
+    <Compile Include="Services\FileOperationsService.cs" />
+    <Compile Include="Configuration\FileProcessingConfig.cs" />
+    <Compile Include="Handlers\IFileContentHandler.cs" />
+    <Compile Include="Handlers\JsonContentHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>

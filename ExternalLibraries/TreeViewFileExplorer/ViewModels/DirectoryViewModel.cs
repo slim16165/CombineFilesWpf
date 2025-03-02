@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using CombineFiles.Core.Helpers;
+using CombineFiles.Core.Services;
 using TreeViewFileExplorer.Enums;
 using TreeViewFileExplorer.Events;
 using TreeViewFileExplorer.Services;

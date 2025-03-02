@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using CombineFiles.Core;
+using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Helpers;
 using TreeViewFileExplorer.Model;
 
