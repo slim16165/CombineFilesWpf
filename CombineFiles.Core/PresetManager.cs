@@ -1,108 +1,138 @@
 ﻿using System;
 using System.Collections.Generic;
 using CombineFiles.Core.Configuration;
+#pragma warning disable CS8604 // Possible null reference argument.
 
-namespace CombineFiles.ConsoleApp;
-
-public static class PresetManager
+namespace CombineFiles.ConsoleApp
 {
-    public static readonly Dictionary<string?, Dictionary<string, object>> Presets =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            ["CSharp"] = new Dictionary<string, object>
-            {
-                { "Mode", "extensions" },
-                { "Extensions", new List<string>{ ".cs", ".xaml" } },
-                { "OutputFile", "CombinedFile.cs" },
-                { "Recurse", true },
-                { "ExcludePaths", new List<string>{ "Properties", "obj", "bin" } },
-                { "ExcludeFilePatterns", new List<string>{ ".*\\.g\\.i\\.cs$", ".*\\.g\\.cs$", ".*\\.designer\\.cs$", ".*AssemblyInfo\\.cs$", "^auto-generated" } }
-            },
-            // Esempio di preset per VB (ipotetico)
-            ["VB"] = new Dictionary<string, object>
-            {
-                { "Mode", "extensions" },
-                { "Extensions", new List<string>{ ".vb", ".resx" } },
-                { "OutputFile", "CombinedFile.vb" },
-                { "Recurse", true },
-                { "ExcludePaths", new List<string>{ "My Project", "bin", "obj" } },
-                { "ExcludeFilePatterns", new List<string>{ ".*\\.designer\\.vb$", ".*AssemblyInfo\\.vb$" } }
-            },
-            // Esempio di preset per JavaScript (ipotetico)
-            ["JavaScript"] = new Dictionary<string, object>
-            {
-                { "Mode", "extensions" },
-                { "Extensions", new List<string>{ ".js", ".jsx" } },
-                { "OutputFile", "CombinedFile.js" },
-                { "Recurse", true },
-                { "ExcludePaths", new List<string>{ "node_modules", "dist" } },
-                { "ExcludeFilePatterns", new List<string>{ ".*\\.min\\.js$" } }
-            }
-        };
-
-    public static void ApplyPreset(CombineFilesOptions options)
+    // Preset immutabile con proprietà di sola lettura.
+    public class Preset
     {
-        if (!string.IsNullOrWhiteSpace(options.Preset) &&
-        Presets.TryGetValue(options.Preset, out var presetParams))
-        {
-            foreach (var kvp in presetParams)
-            {
-                string key = kvp.Key;
-                object val = kvp.Value;
+        public string Mode { get; }
+        public IReadOnlyList<string> Extensions { get; }
+        public string OutputFile { get; }
+        public bool Recurse { get; }
+        public IReadOnlyList<string> ExcludePaths { get; }
+        public IReadOnlyList<string> ExcludeFilePatterns { get; }
 
-                switch (key.ToLowerInvariant())
-                {
-                    case "mode":
-                        if (string.IsNullOrEmpty(options.Mode))
-                        {
-                            options.Mode = val.ToString();
-                            Console.WriteLine($"Applicato preset '{options.Preset}': Mode = {options.Mode}");
-                        }
-                        break;
-                    case "extensions":
-                        if (options.Extensions.Count == 0)
-                        {
-                            options.Extensions = (List<string>)val;
-                            Console.WriteLine($"Applicato preset '{options.Preset}': Extensions = {string.Join(" ", options.Extensions)}");
-                        }
-                        break;
-                    case "outputfile":
-                        if (options.OutputFile == "CombinedFile.txt")
-                        {
-                            options.OutputFile = val.ToString();
-                            Console.WriteLine($"Applicato preset '{options.Preset}': OutputFile = {options.OutputFile}");
-                        }
-                        break;
-                    case "recurse":
-                        if (!options.Recurse)
-                        {
-                            options.Recurse = (bool)val;
-                            Console.WriteLine($"Applicato preset '{options.Preset}': Recurse = {options.Recurse}");
-                        }
-                        break;
-                    case "excludepaths":
-                        if (options.ExcludePaths.Count == 0)
-                        {
-                            options.ExcludePaths = (List<string>)val;
-                            Console.WriteLine($"Applicato preset '{options.Preset}': ExcludePaths = {string.Join(" ", options.ExcludePaths)}");
-                        }
-                        break;
-                    case "excludefilepatterns":
-                        if (options.ExcludeFilePatterns.Count == 0)
-                        {
-                            options.ExcludeFilePatterns = (List<string>)val;
-                            Console.WriteLine($"Applicato preset '{options.Preset}': ExcludeFilePatterns = {string.Join(" ", options.ExcludeFilePatterns)}");
-                        }
-                        break;
-                }
+        public Preset(
+            string mode,
+            List<string> extensions,
+            string outputFile,
+            bool recurse,
+            List<string> excludePaths,
+            List<string> excludeFilePatterns)
+        {
+            Mode = mode;
+            Extensions = extensions.AsReadOnly();
+            OutputFile = outputFile;
+            Recurse = recurse;
+            ExcludePaths = excludePaths.AsReadOnly();
+            ExcludeFilePatterns = excludeFilePatterns.AsReadOnly();
+        }
+    }
+
+    public static class PresetManager
+    {
+        // I preset sono definiti in modo immutabile e possono essere eventualmente spostati in un file di configurazione.
+        public static readonly Dictionary<string, Preset> Presets =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["CSharp"] = new Preset(
+                    mode: "extensions",
+                    extensions: [".cs", ".xaml"],
+                    outputFile: "CombinedFile.cs",
+                    recurse: true,
+                    excludePaths: ["Properties", "obj", "bin"],
+                    excludeFilePatterns:
+                    [
+                        ".*\\.g\\.i\\.cs$", ".*\\.g\\.cs$", ".*\\.designer\\.cs$", ".*AssemblyInfo\\.cs$",
+                        "^auto-generated"
+                    ]
+                ),
+                ["VB"] = new Preset(
+                    mode: "extensions",
+                    extensions: [".vb", ".resx"],
+                    outputFile: "CombinedFile.vb",
+                    recurse: true,
+                    excludePaths: ["My Project", "bin", "obj"],
+                    excludeFilePatterns: [".*\\.designer\\.vb$", ".*AssemblyInfo\\.vb$"]
+                ),
+                ["JavaScript"] = new Preset(
+                    mode: "extensions",
+                    extensions: [".js", ".jsx"],
+                    outputFile: "CombinedFile.js",
+                    recurse: true,
+                    excludePaths: ["node_modules", "dist"],
+                    excludeFilePatterns: [".*\\.min\\.js$"]
+                )
+            };
+
+        public static void ApplyPreset(CombineFilesOptions options)
+        {
+            if (string.IsNullOrWhiteSpace(options.Preset))
+                return;
+
+            if (!Presets.TryGetValue(options.Preset, out Preset? preset))
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Errore: Preset '{options.Preset}' non trovato.");
+                Console.ResetColor();
+                throw new ArgumentException($"Preset '{options.Preset}' non trovato");
+            }
+
+            // Usa il mapper per applicare il preset alle opzioni
+            OptionsMapper.Map(preset, options);
+        }
+    }
+
+    // Classe dedicata alla mappatura dei preset sulle opzioni,
+    // centralizzando così la logica e rendendola più facilmente testabile.
+    public static class OptionsMapper
+    {
+        public static void Map(Preset preset, CombineFilesOptions options)
+        {
+            if (string.IsNullOrEmpty(options.Mode))
+            {
+                options.Mode = preset.Mode;
+                LogMapping("Mode", options.Preset, preset.Mode);
+            }
+
+            if (options.Extensions.Count == 0)
+            {
+                options.Extensions = new List<string>(preset.Extensions);
+                LogMapping("Extensions", options.Preset, string.Join(" ", preset.Extensions));
+            }
+
+            // Supponiamo che CombineFilesOptions.DefaultOutputFile sia "CombinedFile.txt"
+            if (options.OutputFile == CombineFilesOptions.DefaultOutputFile)
+            {
+                options.OutputFile = preset.OutputFile;
+                LogMapping("OutputFile", options.Preset, preset.OutputFile);
+            }
+
+            if (!options.Recurse)
+            {
+                options.Recurse = preset.Recurse;
+                LogMapping("Recurse", options.Preset, preset.Recurse.ToString());
+            }
+
+            if (options.ExcludePaths.Count == 0)
+            {
+                options.ExcludePaths = new List<string>(preset.ExcludePaths);
+                LogMapping("ExcludePaths", options.Preset, string.Join(" ", preset.ExcludePaths));
+            }
+
+            if (options.ExcludeFilePatterns.Count == 0)
+            {
+                options.ExcludeFilePatterns = new List<string>(preset.ExcludeFilePatterns);
+                LogMapping("ExcludeFilePatterns", options.Preset, string.Join(" ", preset.ExcludeFilePatterns));
             }
         }
-        else if (!string.IsNullOrWhiteSpace(options.Preset))
+
+        private static void LogMapping(string propertyName, string presetName, string value)
         {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Errore: Preset '{options.Preset}' non trovato.");
-            Console.ResetColor();
-            throw new ArgumentException($"Preset '{options.Preset}' non trovato");
+            Console.WriteLine($"Applicato preset '{presetName}': {propertyName} = {value}");
         }
     }
 }

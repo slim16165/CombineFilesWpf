@@ -16,7 +16,7 @@ namespace CombineFiles.Core.Configuration
         public List<string> ExcludeFilePatterns { get; set; } = new();
         public List<string> FileList { get; set; } = new();
         public List<string> RegexPatterns { get; set; } = new();
-        public string? OutputFile { get; set; } = "CombinedFile.txt";
+        public string? OutputFile { get; set; } = DefaultOutputFile;
         public bool OutputToConsole { get; set; }
         public string OutputFormat { get; set; } = "txt";
         public bool FileNamesOnly { get; set; }
@@ -25,5 +25,6 @@ namespace CombineFiles.Core.Configuration
         public DateTime? MinDate { get; set; }
         public DateTime? MaxDate { get; set; }
         public bool Recurse { get; set; }
+        public static string DefaultOutputFile { get; set; } = "CombinedFile.txt";
     }
 }
