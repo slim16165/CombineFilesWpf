@@ -14,6 +14,9 @@ using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Helpers;
 using CombineFiles.Core.Infrastructure;
 using CombineFiles.Core.Services;
+using Microsoft.Build.Utilities;
+using CommandLineBuilder = System.CommandLine.Builder.CommandLineBuilder;
+using Logger = CombineFiles.Core.Infrastructure.Logger;
 
 namespace CombineFiles.ConsoleApp
 {
