@@ -1,5 +1,7 @@
 ﻿using System;
+using CombineFiles.Core;
 using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Helpers;
 using CombineFiles.Core.Infrastructure;
 
 namespace CombineFiles.ConsoleApp.Helpers
@@ -40,9 +42,7 @@ namespace CombineFiles.ConsoleApp.Helpers
         /// </summary>
         public static void PrintPresetList()
         {
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("Preset disponibili:");
-            Console.ResetColor();
+            ConsoleHelper.WriteColored("Preset disponibili:", ConsoleColor.Cyan);
             foreach (var pName in PresetManager.Presets.Keys)
                 Console.WriteLine($"- {pName}");
         }
@@ -52,21 +52,22 @@ namespace CombineFiles.ConsoleApp.Helpers
         /// </summary>
         public static bool ValidateParameters(CombineFilesOptions options, Logger logger)
         {
-            // Se Mode è 'list', la FileList deve contenere almeno un file
+            // Esempio in ValidateParameters:
             if ((options.Mode?.Equals("list", StringComparison.OrdinalIgnoreCase) ?? false)
                 && (options.FileList == null || options.FileList.Count == 0))
             {
                 logger.WriteLog("La modalità 'list' richiede almeno un FileList.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'list' -> -FileList mancante o vuota.");
+                ConsoleHelper.WriteColored("Errore: Modalità 'list' -> -FileList mancante o vuota.", ConsoleColor.Red);
                 return false;
             }
+
 
             // Se Mode è 'extensions', devi avere almeno un'estensione
             if ((options.Mode?.Equals("extensions", StringComparison.OrdinalIgnoreCase) ?? false)
                 && (options.Extensions == null || options.Extensions.Count == 0))
             {
                 logger.WriteLog("La modalità 'extensions' richiede -Extensions.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'extensions' -> -Extensions mancante o vuota.");
+                ConsoleHelper.WriteColored("Errore: Modalità 'extensions' -> -Extensions mancante o vuota.", ConsoleColor.Red);
                 return false;
             }
 
@@ -75,7 +76,7 @@ namespace CombineFiles.ConsoleApp.Helpers
                 && (options.RegexPatterns == null || options.RegexPatterns.Count == 0))
             {
                 logger.WriteLog("La modalità 'regex' richiede -RegexPatterns.", "ERROR");
-                Console.WriteLine("Errore: Modalità 'regex' -> -RegexPatterns mancante o vuota.");
+                ConsoleHelper.WriteColored("Errore: Modalità 'regex' -> -RegexPatterns mancante o vuota.", ConsoleColor.Red);
                 return false;
             }
 

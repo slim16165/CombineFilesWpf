@@ -4,7 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using CombineFiles.Core.Infrastructure;
 
-namespace CombineFiles.ConsoleApp.Core;
+namespace CombineFiles.Core.Services;
 
 public class FileMerger
 {

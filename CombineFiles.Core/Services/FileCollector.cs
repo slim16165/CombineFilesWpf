@@ -5,10 +5,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using CombineFiles.ConsoleApp.Infrastructure;
+using CombineFiles.Core.Helpers;
 using CombineFiles.Core.Infrastructure;
 
-namespace CombineFiles.ConsoleApp.Core;
+namespace CombineFiles.Core.Services;
 
 public class FileCollector
 {

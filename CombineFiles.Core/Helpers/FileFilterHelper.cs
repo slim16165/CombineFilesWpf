@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CombineFiles.ConsoleApp.Infrastructure;
 using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Infrastructure;
 
@@ -128,10 +127,6 @@ public static class FileFilterHelper
     /// Verifica se il file deve essere incluso in base alle opzioni di filtro.
     /// </summary>
     /// <param name="filePath">Il percorso completo del file.</param>
-    /// <param name="excludeHidden">Se escludere i file nascosti.</param>
-    /// <param name="excludePaths">Percorsi (separati da virgola o punto e virgola) da escludere.</param>
-    /// <param name="excludeExtensions">Estensioni (separati da virgola o punto e virgola) da escludere.</param>
-    /// <param name="includeExtensions">Se specificato, includi solo questi file (separati da virgola o punto e virgola).</param>
     /// <returns>true se il file deve essere incluso, altrimenti false.</returns>
     public static bool ShouldIncludeFile(string filePath, FileSearchConfig config)
     {

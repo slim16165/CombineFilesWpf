@@ -2,7 +2,7 @@
 using System.IO;
 using CombineFiles.Core.Infrastructure;
 
-namespace CombineFiles.ConsoleApp.Helpers
+namespace CombineFiles.Core.Helpers
 {
     public static class PathHelper
     {

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Helpers;
+
 #pragma warning disable CS8604 // Possible null reference argument.
 
-namespace CombineFiles.ConsoleApp
+namespace CombineFiles.Core
 {
     // Preset immutabile con proprietà di sola lettura.
     public class Preset
@@ -82,7 +85,12 @@ namespace CombineFiles.ConsoleApp
             }
 
             // Usa il mapper per applicare il preset alle opzioni
-            OptionsMapper.Map(preset, options);
+            var logMessages = OptionsMapper.Map(preset, options);
+
+            if (logMessages.Length > 0)
+            {
+                ConsoleHelper.WriteColored($"Applicato preset '{options.Preset}':\n{logMessages.ToString()}", ConsoleColor.Green);
+            }
         }
     }
 
@@ -90,49 +98,48 @@ namespace CombineFiles.ConsoleApp
     // centralizzando così la logica e rendendola più facilmente testabile.
     public static class OptionsMapper
     {
-        public static void Map(Preset preset, CombineFilesOptions options)
+        public static string Map(Preset preset, CombineFilesOptions options)
         {
+            var logMessages = new StringBuilder();
+
             if (string.IsNullOrEmpty(options.Mode))
             {
                 options.Mode = preset.Mode;
-                LogMapping("Mode", options.Preset, preset.Mode);
+                logMessages.AppendLine($"Mode = {preset.Mode}");
             }
 
             if (options.Extensions.Count == 0)
             {
                 options.Extensions = new List<string>(preset.Extensions);
-                LogMapping("Extensions", options.Preset, string.Join(" ", preset.Extensions));
+                logMessages.AppendLine($"Extensions = {string.Join(" ", preset.Extensions)}");
             }
 
             // Supponiamo che CombineFilesOptions.DefaultOutputFile sia "CombinedFile.txt"
             if (options.OutputFile == CombineFilesOptions.DefaultOutputFile)
             {
                 options.OutputFile = preset.OutputFile;
-                LogMapping("OutputFile", options.Preset, preset.OutputFile);
+                logMessages.AppendLine($"OutputFile = {preset.OutputFile}");
             }
 
             if (!options.Recurse)
             {
                 options.Recurse = preset.Recurse;
-                LogMapping("Recurse", options.Preset, preset.Recurse.ToString());
+                logMessages.AppendLine($"Recurse = {preset.Recurse}");
             }
 
             if (options.ExcludePaths.Count == 0)
             {
                 options.ExcludePaths = new List<string>(preset.ExcludePaths);
-                LogMapping("ExcludePaths", options.Preset, string.Join(" ", preset.ExcludePaths));
+                logMessages.AppendLine($"ExcludePaths = {string.Join(" ", preset.ExcludePaths)}");
             }
 
             if (options.ExcludeFilePatterns.Count == 0)
             {
                 options.ExcludeFilePatterns = new List<string>(preset.ExcludeFilePatterns);
-                LogMapping("ExcludeFilePatterns", options.Preset, string.Join(" ", preset.ExcludeFilePatterns));
+                logMessages.AppendLine($"ExcludeFilePatterns = {string.Join(" ", preset.ExcludeFilePatterns)}");
             }
-        }
 
-        private static void LogMapping(string propertyName, string presetName, string value)
-        {
-            Console.WriteLine($"Applicato preset '{presetName}': {propertyName} = {value}");
+            return logMessages.ToString();
         }
     }
 }

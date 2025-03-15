@@ -8,11 +8,12 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CombineFiles.ConsoleApp.Core;
 using CombineFiles.ConsoleApp.Helpers;
+using CombineFiles.Core;
 using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Helpers;
 using CombineFiles.Core.Infrastructure;
+using CombineFiles.Core.Services;
 
 namespace CombineFiles.ConsoleApp
 {
@@ -89,7 +90,7 @@ namespace CombineFiles.ConsoleApp
             if (!ApplyPresetSafely(options)) return;
 
             // Inizializziamo il logger
-            var logger = InitializeLogger(options);
+            var logger = InitializeLogger(options); 
 
             if (!ValidateOptions(options, logger)) return;
 
@@ -157,9 +158,7 @@ namespace CombineFiles.ConsoleApp
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
-                Console.ResetColor();
+                ConsoleHelper.WriteColored(ex.Message, ConsoleColor.Red);
                 return false;
             }
         }
@@ -320,9 +319,12 @@ namespace CombineFiles.ConsoleApp
             // Aggiunta opzionale di un alias breve personalizzato (es. -m, -o, ecc.)
             if (!string.IsNullOrEmpty(shortAlias))
             {
-                if (!shortAlias!.StartsWith("-")) shortAlias = "-" + shortAlias;
-                aliases.Add(shortAlias);
+                if (!shortAlias.StartsWith("-"))
+                    shortAlias = "-" + shortAlias;
+                if (!aliases.Contains(shortAlias))
+                    aliases.Add(shortAlias);
             }
+
 
             Option<T> option;
             if (addDefaultValue)
@@ -417,12 +419,12 @@ namespace CombineFiles.ConsoleApp
             if (string.IsNullOrEmpty(name))
                 throw new ArgumentException("Il nome non può essere nullo o vuoto.", nameof(name));
 
-            // Variante in minuscolo, maiuscolo e con la prima lettera maiuscola (TitleCase)
             string lower = name.ToLowerInvariant();
             string upper = name.ToUpperInvariant();
             string title = char.ToUpperInvariant(lower[0]) + lower.Substring(1);
 
-            return new[]
+            // Crea una lista senza duplicati
+            var aliases = new HashSet<string>
             {
                 $"--{lower}",
                 $"-{lower[0]}",
@@ -431,6 +433,8 @@ namespace CombineFiles.ConsoleApp
                 $"--{title}",
                 $"-{title}"
             };
+            return aliases.ToArray();
         }
+
     }
 }

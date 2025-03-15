@@ -2,7 +2,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace CombineFiles.ConsoleApp.Infrastructure;
+namespace CombineFiles.Core.Helpers;
 
 public static class FileHelper
 {

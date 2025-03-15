@@ -34,9 +34,17 @@
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="CsvHelper, Version=33.0.0.0, Culture=neutral, PublicKeyToken=8c4959082be5c823, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\.nuget\packages\csvhelper\33.0.1\lib\net47\CsvHelper.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Numerics" />
+    <Reference Include="System.Text.Json, Version=9.0.0.2, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\.nuget\packages\system.text.json\9.0.2\lib\net462\System.Text.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -55,6 +63,7 @@
     <Compile Include="Handlers\CsvContentHandler.cs" />
     <Compile Include="Handlers\DefaultContentHandler.cs" />
     <Compile Include="FileProcessor.cs" />
+    <Compile Include="Helpers\ConsoleHelper.cs" />
     <Compile Include="Helpers\FileCollectionHelper.cs" />
     <Compile Include="Helpers\FileHelper.cs" />
     <Compile Include="Helpers\FileSystemHelper.cs" />
