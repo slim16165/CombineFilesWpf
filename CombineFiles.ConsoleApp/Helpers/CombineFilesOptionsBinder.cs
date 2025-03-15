@@ -3,7 +3,7 @@ using System.CommandLine;
 using System.CommandLine.Binding;
 using CombineFiles.Core.Configuration;
 
-namespace CombineFiles.ConsoleApp;
+namespace CombineFiles.ConsoleApp.Helpers;
 
 public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
 {

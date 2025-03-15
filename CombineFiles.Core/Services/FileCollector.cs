@@ -17,6 +17,10 @@ public class FileCollector
     private readonly List<string> _excludeFiles;
     private readonly List<string> _excludeFilePatterns;
 
+    // Base path da usare per i percorsi relativi (puoi usare anche un costruttore
+    // che riceve la cartella di partenza esplicitamente).
+    private readonly string _basePath;
+
     public FileCollector(
         Logger logger,
         List<string> excludePaths,
@@ -27,6 +31,26 @@ public class FileCollector
         _excludePaths = excludePaths;
         _excludeFiles = excludeFiles;
         _excludeFilePatterns = excludeFilePatterns;
+
+        // Ad esempio, la cartella di partenza potrebbe essere l'ultima
+        // dove hai lanciato l’app o un parametro in CombineFilesOptions.
+        _basePath = Directory.GetCurrentDirectory();
+    }
+
+    /// <summary>
+    /// Converte un percorso assoluto in relativo rispetto a _basePath.
+    /// Se la conversione fallisce, restituisce comunque il path originale.
+    /// </summary>
+    private string ToRelativePath(string fullPath)
+    {
+        try
+        {
+            return FileHelper.GetRelativePath(_basePath, fullPath);
+        }
+        catch
+        {
+            return fullPath;
+        }
     }
 
     private bool IsPathExcluded(string filePath)
@@ -36,7 +60,11 @@ public class FileCollector
         {
             if (filePath.StartsWith(path, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.WriteLog($"Escluso per percorso: {filePath} corrisponde a {path}", "DEBUG");
+                // Log di debug (non comparirà se MinimumLogLevel > DEBUG)
+                _logger.WriteLog(
+                    $"Escluso per percorso: {ToRelativePath(filePath)} corrisponde a {ToRelativePath(path)}",
+                    LogLevel.DEBUG
+                );
                 return true;
             }
         }
@@ -47,7 +75,10 @@ public class FileCollector
         {
             if (fileName.Equals(excludedFile, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.WriteLog($"Escluso per nome file: {filePath} corrisponde a {excludedFile}", "DEBUG");
+                _logger.WriteLog(
+                    $"Escluso per nome file: {ToRelativePath(filePath)} corrisponde a {excludedFile}",
+                    LogLevel.DEBUG
+                );
                 return true;
             }
         }
@@ -57,7 +88,10 @@ public class FileCollector
         {
             if (Regex.IsMatch(filePath, pattern))
             {
-                _logger.WriteLog($"Escluso per pattern regex: {filePath} corrisponde a {pattern}", "DEBUG");
+                _logger.WriteLog(
+                    $"Escluso per pattern regex: {ToRelativePath(filePath)} corrisponde a {pattern}",
+                    LogLevel.DEBUG
+                );
                 return true;
             }
         }
@@ -85,7 +119,10 @@ public class FileCollector
             }
             catch (Exception ex)
             {
-                _logger.WriteLog($"Errore durante l'accesso al percorso: {currentPath} - {ex.Message}", "WARNING");
+                // In output normale, la segnali come WARNING
+                _logger.WriteLog(
+                    $"Errore durante l'accesso al percorso: {ToRelativePath(currentPath)} - {ex.Message}",
+                    LogLevel.WARNING);
                 return;
             }
 
@@ -93,7 +130,8 @@ public class FileCollector
             {
                 if (IsPathExcluded(item))
                 {
-                    _logger.WriteLog($"Percorso o file escluso: {item}", "DEBUG");
+                    // Log di debug. I dettagli li scrivo a livello debug.
+                    _logger.WriteLog($"Percorso o file escluso: {ToRelativePath(item)}", LogLevel.DEBUG);
                     continue;
                 }
 
@@ -105,14 +143,20 @@ public class FileCollector
                         bool isReparse = (attr & FileAttributes.ReparsePoint) != 0;
                         if (isReparse)
                         {
-                            _logger.WriteLog($"Trovato reparse point: {item} – non risolto", "DEBUG");
+                            _logger.WriteLog(
+                                $"Trovato reparse point: {ToRelativePath(item)} – non risolto",
+                                LogLevel.DEBUG
+                            );
                         }
+
                         RecursiveGetFiles(item);
                     }
                 }
                 else
                 {
-                    _logger.WriteLog($"File incluso: {item}", "DEBUG");
+                    // Se vuoi, puoi mostrare a schermo i file inclusi,
+                    // ma anche questo può essere spostato su DEBUG.
+                    // _logger.WriteLog($"File incluso: {ToRelativePath(item)}", LogLevel.DEBUG);
                     result.Add(item);
                 }
             }
@@ -143,11 +187,11 @@ public class FileCollector
         try
         {
             File.WriteAllLines(tempFilePath, (IEnumerable<string>)relativePaths, Encoding.UTF8);
-            _logger.WriteLog($"File di configurazione temporaneo creato: {tempFilePath}", "DEBUG");
+            _logger.WriteLog($"File di configurazione temporaneo creato: {tempFilePath}", LogLevel.DEBUG);
         }
         catch (Exception ex)
         {
-            _logger.WriteLog($"Errore nella scrittura del file temporaneo: {ex.Message}", "ERROR");
+            _logger.WriteLog($"Errore nella scrittura del file temporaneo: {ex.Message}", LogLevel.ERROR);
             return new List<string>();
         }
 
@@ -160,11 +204,11 @@ public class FileCollector
             process.Start();
             process.WaitForExit();
 
-            _logger.WriteLog("Editor chiuso. Lettura del file di configurazione aggiornato.", "DEBUG");
+            _logger.WriteLog("Editor chiuso. Lettura del file di configurazione aggiornato.", LogLevel.DEBUG);
         }
         catch (Exception ex)
         {
-            _logger.WriteLog($"Errore nell'apertura di notepad: {ex.Message}", "ERROR");
+            _logger.WriteLog($"Errore nell'apertura di notepad: {ex.Message}", LogLevel.ERROR);
             return new List<string>();
         }
 
@@ -177,7 +221,7 @@ public class FileCollector
         }
         catch (Exception ex)
         {
-            _logger.WriteLog($"Errore nella lettura del file temporaneo: {ex.Message}", "ERROR");
+            _logger.WriteLog($"Errore nella lettura del file temporaneo: {ex.Message}", LogLevel.ERROR);
             return new List<string>();
         }
 
@@ -191,16 +235,20 @@ public class FileCollector
             }
             else
             {
-                _logger.WriteLog($"File non trovato durante la lettura del config: {absPath}", "WARNING");
+                _logger.WriteLog($"File non trovato durante la lettura del config: {absPath}", LogLevel.WARNING);
             }
         }
-        _logger.WriteLog($"File aggiornati dopo InteractiveSelection: {updatedFiles.Count}", "DEBUG");
+
+        _logger.WriteLog($"File aggiornati dopo InteractiveSelection: {updatedFiles.Count}", LogLevel.DEBUG);
 
         try
         {
             File.Delete(tempFilePath);
         }
-        catch { /* Ignora errori di cancellazione */ }
+        catch
+        {
+            /* Ignora errori di cancellazione */
+        }
 
         return updatedFiles;
     }

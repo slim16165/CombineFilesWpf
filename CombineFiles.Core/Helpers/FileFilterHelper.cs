@@ -2,150 +2,206 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Infrastructure;
 
-namespace CombineFiles.Core.Helpers;
-
-public static class FileFilterHelper
+namespace CombineFiles.Core.Helpers
 {
-    /// <summary>
-    /// Filtra la lista di file in base a MinDate, MaxDate, MinSize, MaxSize.
-    /// </summary>
-    public static List<string> FilterByDateAndSize(List<string> files, CombineFilesOptions options, Logger logger)
+    public static class FileFilterHelper
     {
-        long minSize = string.IsNullOrWhiteSpace(options.MinSize)
-            ? 0
-            : FileHelper.ConvertSizeToBytes(options.MinSize);
+        /// <summary>
+        /// Verifica se un file deve essere incluso in base a:
+        /// - File nascosti (opzionale)
+        /// - Percorsi da escludere
+        /// - Estensioni da includere/escludere
+        /// - Nome contenente "auto-generated"
+        /// </summary>
+        /// <param name="filePath">Il percorso completo del file.</param>
+        /// <param name="excludeHidden">Se escludere file nascosti.</param>
+        /// <param name="excludePaths">Percorsi da escludere (separati da virgola o punto e virgola).</param>
+        /// <param name="excludeExtensions">Estensioni da escludere (separati da virgola o punto e virgola).</param>
+        /// <param name="includeExtensions">Estensioni da includere (separati da virgola o punto e virgola).</param>
+        /// <param name="logger">Facoltativo, se vuoi loggare dettagli in modalità DEBUG.</param>
+        public static bool ShouldIncludeFile(
+            string filePath,
+            bool excludeHidden,
+            string excludePaths,
+            string excludeExtensions,
+            string includeExtensions,
+            Logger? logger = null)
+        {
+            // 1) Escludi file nascosti
+            if (excludeHidden)
+            {
+                try
+                {
+                    var attributes = File.GetAttributes(filePath);
+                    if ((attributes & FileAttributes.Hidden) == FileAttributes.Hidden)
+                    {
+                        logger?.WriteLog($"File nascosto escluso: {GetRelativePath(filePath)}", LogLevel.DEBUG);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger?.WriteLog($"Errore nel leggere attributi di {GetRelativePath(filePath)}: {ex.Message}", LogLevel.WARNING);
+                    return false;
+                }
+            }
 
-        long maxSize = string.IsNullOrWhiteSpace(options.MaxSize)
-            ? long.MaxValue
-            : FileHelper.ConvertSizeToBytes(options.MaxSize);
+            // 2) Esclusione per percorsi (stringa con più valori, divisi da virgola/punto e virgola)
+            if (!string.IsNullOrWhiteSpace(excludePaths))
+            {
+                var pathsToExclude = excludePaths.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                                 .Select(p => p.Trim());
+                foreach (var path in pathsToExclude)
+                {
+                    if (filePath.IndexOf(path, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        logger?.WriteLog($"File escluso per percorso: {GetRelativePath(filePath)} contiene \"{path}\"", LogLevel.DEBUG);
+                        return false;
+                    }
+                }
+            }
 
-        DateTime? minDate = options.MinDate;
-        DateTime? maxDate = options.MaxDate;
+            // 3) Esclusione per estensione
+            var fileExt = Path.GetExtension(filePath);
+            if (!string.IsNullOrWhiteSpace(excludeExtensions))
+            {
+                var exts = excludeExtensions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                            .Select(e => e.Trim());
+                if (exts.Any(e => fileExt.Equals(e, StringComparison.OrdinalIgnoreCase)))
+                {
+                    logger?.WriteLog($"File escluso per estensione: {GetRelativePath(filePath)} ha estensione \"{fileExt}\"", LogLevel.DEBUG);
+                    return false;
+                }
+            }
 
-        var filtered = new List<string>();
+            // 4) Inclusione per estensione (se specificata)
+            if (!string.IsNullOrWhiteSpace(includeExtensions))
+            {
+                var includeExts = includeExtensions.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                                   .Select(e => e.Trim());
+                if (!includeExts.Any(e => fileExt.Equals(e, StringComparison.OrdinalIgnoreCase)))
+                {
+                    logger?.WriteLog($"File escluso perché non è tra le estensioni incluse: {GetRelativePath(filePath)}", LogLevel.DEBUG);
+                    return false;
+                }
+            }
 
-        foreach (var f in files)
+            // 5) Escludi file con “auto-generated” nel nome
+            var fileName = Path.GetFileName(filePath);
+            if (Regex.IsMatch(fileName, "auto-generated", RegexOptions.IgnoreCase))
+            {
+                logger?.WriteLog($"File escluso per nome auto-generated: {GetRelativePath(filePath)}", LogLevel.DEBUG);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Filtra i file in base alla data di creazione e/o alla dimensione (MinSize, MaxSize).
+        /// </summary>
+        public static List<string> FilterByDateAndSize(List<string> files, CombineFilesOptions options, Logger logger)
+        {
+            var filtered = files.Where(file =>
+            {
+                FileInfo fi;
+                try
+                {
+                    fi = new FileInfo(file);
+                }
+                catch (Exception ex)
+                {
+                    logger.WriteLog($"Errore nel leggere informazioni di {GetRelativePath(file)}: {ex.Message}", LogLevel.WARNING);
+                    return false;
+                }
+
+                // 1) Filtra per dimensione minima
+                if (!string.IsNullOrWhiteSpace(options.MinSize))
+                {
+                    try
+                    {
+                        long minBytes = FileHelper.ConvertSizeToBytes(options.MinSize);
+                        if (fi.Length < minBytes)
+                            return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.WriteLog($"Errore nel convertire MinSize per {GetRelativePath(file)}: {ex.Message}", LogLevel.WARNING);
+                        return false;
+                    }
+                }
+
+                // 2) Filtra per dimensione massima
+                if (!string.IsNullOrWhiteSpace(options.MaxSize))
+                {
+                    try
+                    {
+                        long maxBytes = FileHelper.ConvertSizeToBytes(options.MaxSize);
+                        if (fi.Length > maxBytes)
+                            return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.WriteLog($"Errore nel convertire MaxSize per {GetRelativePath(file)}: {ex.Message}", LogLevel.WARNING);
+                        return false;
+                    }
+                }
+
+                // 3) Filtra per data minima
+                if (options.MinDate.HasValue && fi.CreationTime < options.MinDate.Value)
+                    return false;
+
+                // 4) Filtra per data massima
+                if (options.MaxDate.HasValue && fi.CreationTime > options.MaxDate.Value)
+                    return false;
+
+                return true;
+            }).ToList();
+
+            return filtered;
+        }
+
+        /// <summary>
+        /// Controlla se il file contiene nel contenuto la stringa "<auto-generated" o "<autogenerated"
+        /// (tipico dei file generati da tool come quelli degli AssemblyAttributes).
+        /// </summary>
+        public static bool FileContainsAutoGenerated(string filePath, Logger logger)
         {
             try
             {
-                var info = new FileInfo(f);
-
-                bool sizeOk = info.Length >= minSize && info.Length <= maxSize;
-                bool dateOk = (!minDate.HasValue || info.LastWriteTime >= minDate.Value)
-                              && (!maxDate.HasValue || info.LastWriteTime <= maxDate.Value);
-
-                if (sizeOk && dateOk)
-                    filtered.Add(f);
-            }
-            catch (Exception ex)
-            {
-                logger.WriteLog($"Errore nell'accesso a {f}: {ex.Message}", "WARNING");
-            }
-        }
-
-        logger.WriteLog($"File rimasti dopo filtro date/dimensioni: {filtered.Count}", "INFO");
-        return filtered;
-    }
-
-    /// <summary>
-    /// Ritorna true se il file contiene la stringa "auto-generated", false altrimenti.
-    /// </summary>
-    public static bool FileContainsAutoGenerated(string filePath, Logger logger)
-    {
-        try
-        {
-            var lines = File.ReadAllLines(filePath);
-            foreach (var line in lines)
-            {
-                if (line.Contains("<auto-generated>"))
+                string content = File.ReadAllText(filePath);
+                if (content.IndexOf("<auto-generated", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    content.IndexOf("<autogenerated", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    logger.WriteLog($"File escluso per contenuto auto-generated: {filePath}", "INFO");
+                    logger.WriteLog($"File escluso per contenuto auto-generated: {GetRelativePath(filePath)}", LogLevel.DEBUG);
                     return true;
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            logger.WriteLog($"Impossibile controllare 'auto-generated' su {filePath}: {ex.Message}", "WARNING");
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Verifica se il file deve essere incluso in base alle opzioni di filtro.
-    /// </summary>
-    /// <param name="filePath">Il percorso completo del file.</param>
-    /// <param name="excludeHidden">Se escludere i file nascosti.</param>
-    /// <param name="excludePaths">Percorsi (separati da virgola o punto e virgola) da escludere.</param>
-    /// <param name="excludeExtensions">Estensioni (separati da virgola o punto e virgola) da escludere.</param>
-    /// <param name="includeExtensions">Se specificato, includi solo questi file (separati da virgola o punto e virgola).</param>
-    /// <returns>true se il file deve essere incluso, altrimenti false.</returns>
-    public static bool ShouldIncludeFile(string filePath, bool excludeHidden, string excludePaths, string excludeExtensions, string includeExtensions)
-    {
-        // Escludi file nascosti
-        if (excludeHidden && (new FileInfo(filePath).Attributes.HasFlag(FileAttributes.Hidden)))
-        {
+            catch (Exception ex)
+            {
+                logger.WriteLog($"Errore nella lettura di {GetRelativePath(filePath)}: {ex.Message}", LogLevel.WARNING);
+            }
             return false;
         }
 
-        // Escludi percorsi specifici
-        if (!string.IsNullOrWhiteSpace(excludePaths))
+        /// <summary>
+        /// Converte un percorso assoluto in relativo rispetto alla cartella corrente.
+        /// Se la conversione fallisce, restituisce il percorso originale.
+        /// </summary>
+        private static string GetRelativePath(string fullPath)
         {
-            var paths = excludePaths.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var path in paths)
+            try
             {
-                if (filePath.IndexOf(path, StringComparison.OrdinalIgnoreCase) >= 0)
-                    return false;
+                return FileHelper.GetRelativePath(Directory.GetCurrentDirectory(), fullPath);
+            }
+            catch
+            {
+                return fullPath;
             }
         }
-
-        string extension = Path.GetExtension(filePath).ToLower();
-
-        // Escludi estensioni specifiche
-        if (!string.IsNullOrWhiteSpace(excludeExtensions))
-        {
-            var extList = excludeExtensions.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
-            if (Array.Exists(extList, e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
-                return false;
-        }
-
-        // Includi solo estensioni specifiche se definite
-        if (!string.IsNullOrWhiteSpace(includeExtensions))
-        {
-            var includeList = includeExtensions.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries);
-            if (!Array.Exists(includeList, e => e.Equals(extension, StringComparison.OrdinalIgnoreCase)))
-                return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Verifica se il file deve essere incluso in base alle opzioni di filtro.
-    /// </summary>
-    /// <param name="filePath">Il percorso completo del file.</param>
-    /// <returns>true se il file deve essere incluso, altrimenti false.</returns>
-    public static bool ShouldIncludeFile(string filePath, FileSearchConfig config)
-    {
-        var fileInfo = new FileInfo(filePath);
-        if (config.ExcludeHidden && fileInfo.Attributes.HasFlag(FileAttributes.Hidden)) return false;
-
-        var excludePaths = config.ExcludePaths?.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
-        if (excludePaths.Any(p => filePath.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0)) return false;
-
-        string extension = Path.GetExtension(filePath).ToLower();
-        var excludeExts = config.ExcludeExtensions?.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(e => e.Trim().ToLower()).ToHashSet() ?? [];
-        if (excludeExts.Contains(extension)) return false;
-
-        var includeExts = config.IncludeExtensions?.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries)
-            .Select(e => e.Trim().ToLower()).ToHashSet() ?? [];
-        if (includeExts.Any() && !includeExts.Contains(extension)) return false;
-
-        return true;
     }
 }

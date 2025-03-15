@@ -2,36 +2,35 @@
 using System.IO;
 using CombineFiles.Core.Infrastructure;
 
-namespace CombineFiles.Core.Helpers
+namespace CombineFiles.Core.Helpers;
+
+public static class PathHelper
 {
-    public static class PathHelper
+    /// <summary>
+    /// Normalizza i percorsi da escludere in percorsi assoluti, loggando eventuali avvisi se non trovati.
+    /// </summary>
+    public static List<string> NormalizeExcludePaths(List<string> excludePaths, string basePath, Logger logger)
     {
-        /// <summary>
-        /// Normalizza i percorsi da escludere in percorsi assoluti, loggando eventuali avvisi se non trovati.
-        /// </summary>
-        public static List<string> NormalizeExcludePaths(List<string> excludePaths, string basePath, Logger logger)
+        var fullExcludePaths = new List<string>();
+        if (excludePaths == null) return fullExcludePaths;
+
+        foreach (var p in excludePaths)
         {
-            var fullExcludePaths = new List<string>();
-            if (excludePaths == null) return fullExcludePaths;
+            string candidate = p;
+            if (!Path.IsPathRooted(candidate))
+                candidate = Path.Combine(basePath, p);
 
-            foreach (var p in excludePaths)
+            if (Directory.Exists(candidate))
             {
-                string candidate = p;
-                if (!Path.IsPathRooted(candidate))
-                    candidate = Path.Combine(basePath, p);
-
-                if (Directory.Exists(candidate))
-                {
-                    fullExcludePaths.Add(candidate);
-                    logger.WriteLog($"Percorso escluso aggiunto: {candidate}", "DEBUG");
-                }
-                else
-                {
-                    // Se non esiste come directory, avvisa
-                    logger.WriteLog($"Directory di esclusione non trovata o non valida: {candidate}", "WARNING");
-                }
+                fullExcludePaths.Add(candidate);
+                logger.WriteLog($"Percorso escluso aggiunto: {candidate}", LogLevel.DEBUG);
             }
-            return fullExcludePaths;
+            else
+            {
+                // Se non esiste come directory, avvisa
+                logger.WriteLog($"Directory di esclusione non trovata o non valida: {candidate}", LogLevel.WARNING);
+            }
         }
+        return fullExcludePaths;
     }
 }

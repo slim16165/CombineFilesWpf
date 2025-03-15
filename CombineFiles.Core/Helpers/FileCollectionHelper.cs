@@ -7,118 +7,117 @@ using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Infrastructure;
 using CombineFiles.Core.Services;
 
-namespace CombineFiles.Core.Helpers
+namespace CombineFiles.Core.Helpers;
+
+public static class FileCollectionHelper
 {
-    public static class FileCollectionHelper
+    /// <summary>
+    /// Metodo “unico” che, in base a options.Mode, decide come ottenere la lista di file.
+    /// </summary>
+    public static List<string> CollectFiles(CombineFilesOptions options, Logger logger, FileCollector collector, string sourcePath)
     {
-        /// <summary>
-        /// Metodo “unico” che, in base a options.Mode, decide come ottenere la lista di file.
-        /// </summary>
-        public static List<string> CollectFiles(CombineFilesOptions options, Logger logger, FileCollector collector, string sourcePath)
+        List<string> filesToProcess;
+
+        switch (options.Mode?.ToLowerInvariant())
         {
-            List<string> filesToProcess;
+            case "list":
+                filesToProcess = HandleListMode(options, logger);
+                break;
 
-            switch (options.Mode?.ToLowerInvariant())
-            {
-                case "list":
-                    filesToProcess = HandleListMode(options, logger);
-                    break;
+            case "extensions":
+                filesToProcess = HandleExtensionsMode(options, logger, collector);
+                break;
 
-                case "extensions":
-                    filesToProcess = HandleExtensionsMode(options, logger, collector);
-                    break;
+            case "regex":
+                filesToProcess = HandleRegexMode(options, logger, collector);
+                break;
 
-                case "regex":
-                    filesToProcess = HandleRegexMode(options, logger, collector);
-                    break;
+            case "interactiveselection":
+                // Ottieni prima i file per estensione
+                filesToProcess = HandleExtensionsMode(options, logger, collector);
 
-                case "interactiveselection":
-                    // Ottieni prima i file per estensione
-                    filesToProcess = HandleExtensionsMode(options, logger, collector);
+                // Poi avvia la selezione interattiva
+                filesToProcess = collector.StartInteractiveSelection(filesToProcess, sourcePath);
+                break;
 
-                    // Poi avvia la selezione interattiva
-                    filesToProcess = collector.StartInteractiveSelection(filesToProcess, sourcePath);
-                    break;
-
-                default:
-                    // Se non specificato, raccogli tutti i file
-                    filesToProcess = collector.GetAllFiles(sourcePath, options.Recurse);
-                    break;
-            }
-
-            return filesToProcess;
+            default:
+                // Se non specificato, raccogli tutti i file
+                filesToProcess = collector.GetAllFiles(sourcePath, options.Recurse);
+                break;
         }
 
-        private static List<string> HandleListMode(CombineFilesOptions options, Logger logger)
+        return filesToProcess;
+    }
+
+    private static List<string> HandleListMode(CombineFilesOptions options, Logger logger)
+    {
+        var filesToProcess = new List<string>();
+        string basePath = Directory.GetCurrentDirectory();
+
+        foreach (var relativeFile in options.FileList)
         {
-            var filesToProcess = new List<string>();
-            string basePath = Directory.GetCurrentDirectory();
+            string absPath = Path.IsPathRooted(relativeFile)
+                ? relativeFile
+                : Path.Combine(basePath, relativeFile);
 
-            foreach (var relativeFile in options.FileList)
+            if (File.Exists(absPath))
             {
-                string absPath = Path.IsPathRooted(relativeFile)
-                    ? relativeFile
-                    : Path.Combine(basePath, relativeFile);
-
-                if (File.Exists(absPath))
-                {
-                    logger.WriteLog($"File incluso dalla lista: {absPath}", "INFO");
-                    filesToProcess.Add(absPath);
-                }
-                else
-                {
-                    logger.WriteLog($"File non trovato: {absPath}", "WARNING");
-                    Console.WriteLine($"Avviso: File non trovato: {absPath}");
-                }
+                logger.WriteLog($"File incluso dalla lista: {absPath}", LogLevel.INFO);
+                filesToProcess.Add(absPath);
             }
-
-            return filesToProcess;
+            else
+            {
+                logger.WriteLog($"File non trovato: {absPath}", LogLevel.WARNING);
+                Console.WriteLine($"Avviso: File non trovato: {absPath}");
+            }
         }
 
-        private static List<string> HandleExtensionsMode(CombineFilesOptions options, Logger logger, FileCollector collector)
-        {
-            var basePath = Directory.GetCurrentDirectory();
-            var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-            var matched = new List<string>();
+        return filesToProcess;
+    }
 
-            foreach (var file in allFiles)
+    private static List<string> HandleExtensionsMode(CombineFilesOptions options, Logger logger, FileCollector collector)
+    {
+        var basePath = Directory.GetCurrentDirectory();
+        var allFiles = collector.GetAllFiles(basePath, options.Recurse);
+        var matched = new List<string>();
+
+        foreach (var file in allFiles)
+        {
+            foreach (var ext in options.Extensions)
             {
-                foreach (var ext in options.Extensions)
+                if (file.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (file.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
-                    {
-                        matched.Add(file);
-                        break;
-                    }
+                    matched.Add(file);
+                    break;
                 }
             }
-
-            matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            logger.WriteLog($"File da processare dopo filtraggio per estensioni: {matched.Count}", "INFO");
-            return matched;
         }
 
-        private static List<string> HandleRegexMode(CombineFilesOptions options, Logger logger, FileCollector collector)
-        {
-            var basePath = Directory.GetCurrentDirectory();
-            var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-            var matched = new List<string>();
+        matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        logger.WriteLog($"File da processare dopo filtraggio per estensioni: {matched.Count}", LogLevel.INFO);
+        return matched;
+    }
 
-            foreach (var file in allFiles)
+    private static List<string> HandleRegexMode(CombineFilesOptions options, Logger logger, FileCollector collector)
+    {
+        var basePath = Directory.GetCurrentDirectory();
+        var allFiles = collector.GetAllFiles(basePath, options.Recurse);
+        var matched = new List<string>();
+
+        foreach (var file in allFiles)
+        {
+            foreach (var pattern in options.RegexPatterns)
             {
-                foreach (var pattern in options.RegexPatterns)
+                if (Regex.IsMatch(file, pattern))
                 {
-                    if (Regex.IsMatch(file, pattern))
-                    {
-                        matched.Add(file);
-                        break; // Evita duplicati
-                    }
+                    matched.Add(file);
+                    break; // Evita duplicati
                 }
             }
-
-            matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            logger.WriteLog($"File da processare (regex): {matched.Count}", "INFO");
-            return matched;
         }
+
+        matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        logger.WriteLog($"File da processare (regex): {matched.Count}", LogLevel.INFO);
+        return matched;
     }
 }

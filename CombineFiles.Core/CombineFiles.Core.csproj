@@ -64,6 +64,7 @@
     <Compile Include="Helpers\OutputFileHelper.cs" />
     <Compile Include="Helpers\PathHelper.cs" />
     <Compile Include="Infrastructure\Logger.cs" />
+    <Compile Include="Infrastructure\LogLevel.cs" />
     <Compile Include="PresetManager.cs" />
     <Compile Include="Services\FileCollector.cs" />
     <Compile Include="Services\FileMerger.cs" />
@@ -99,16 +100,19 @@
     <PackageReference Include="CsvHelper">
       <Version>33.0.1</Version>
     </PackageReference>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.2" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="System.Buffers" Version="4.5.1" />
-    <PackageReference Include="System.IO.Pipelines" Version="9.0.2" />
-    <PackageReference Include="System.Memory" Version="4.5.5" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.2" />
-    <PackageReference Include="System.Text.Json" Version="9.0.2" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.5.4" />
+    <PackageReference Include="Spectre.Console">
+      <Version>0.49.1</Version>
+    </PackageReference>
+    <PackageReference Include="System.Buffers" Version="4.6.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="9.0.3" />
+    <PackageReference Include="System.Memory" Version="4.6.0" />
+    <PackageReference Include="System.Numerics.Vectors" Version="4.6.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
+    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.3" />
+    <PackageReference Include="System.Text.Json" Version="9.0.3" />
+    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.0" />
     <PackageReference Include="System.ValueTuple" Version="4.5.0" />
   </ItemGroup>
 </Project>

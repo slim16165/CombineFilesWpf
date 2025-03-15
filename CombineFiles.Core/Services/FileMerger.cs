@@ -61,13 +61,13 @@ public class FileMerger
                 Console.WriteLine($"Attenzione: Impossibile calcolare l'hash del file: {filePath}");
                 Console.ResetColor();
 
-                _logger.WriteLog($"Impossibile calcolare l'hash del file: {filePath} - {ex.Message}", "WARNING");
+                _logger.WriteLog($"Impossibile calcolare l'hash del file: {filePath} - {ex.Message}", LogLevel.WARNING);
                 continue;
             }
 
             if (_processedHashes.Contains(hashString))
             {
-                _logger.WriteLog($"File già processato (hard link): {filePath}", "DEBUG");
+                _logger.WriteLog($"File già processato (hard link): {filePath}", LogLevel.DEBUG);
                 continue;
             }
             _processedHashes.Add(hashString);
@@ -81,7 +81,7 @@ public class FileMerger
 
             if (!_fileNamesOnly)
             {
-                _logger.WriteLog($"Aggiungendo contenuto di: {fileName}", "INFO");
+                _logger.WriteLog($"Aggiungendo contenuto di: {fileName}", LogLevel.INFO);
 
                 try
                 {
@@ -97,7 +97,7 @@ public class FileMerger
                         File.AppendAllLines(_outputFile, lines);
                         File.AppendAllText(_outputFile, Environment.NewLine);
                     }
-                    _logger.WriteLog($"File aggiunto correttamente: {fileName}", "INFO");
+                    _logger.WriteLog($"File aggiunto correttamente: {fileName}", LogLevel.INFO);
                 }
                 catch (Exception ex)
                 {
@@ -105,9 +105,39 @@ public class FileMerger
                     Console.WriteLine($"Attenzione: Impossibile leggere il file: {filePath}");
                     Console.ResetColor();
 
-                    _logger.WriteLog($"Impossibile leggere il file: {filePath} - {ex.Message}", "WARNING");
+                    _logger.WriteLog($"Impossibile leggere il file: {filePath} - {ex.Message}", LogLevel.WARNING);
                 }
             }
+        }
+    }
+
+    public void MergeFile(string filePath)
+    {
+        // Logica di elaborazione per un singolo file, ad esempio:
+        // - Calcolo hash per evitare duplicati
+        // - Aggiunta di intestazione e contenuto
+        // - Gestione delle eccezioni
+        try
+        {
+            // Esempio: aggiunge l'intestazione
+            string fileName = Path.GetFileName(filePath);
+            string header = _fileNamesOnly ? $"### {fileName} ###" : $"### Contenuto di {fileName} ###";
+            WriteOutputOrFile(header);
+
+            if (!_fileNamesOnly)
+            {
+                var lines = File.ReadAllLines(filePath);
+                foreach (var line in lines)
+                    WriteOutputOrFile(line);
+                // Aggiunge una riga vuota
+                WriteOutputOrFile("");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Gestione dell'errore
+            WriteOutputOrFile($"[ERROR: impossibile leggere {filePath} - {ex.Message}]");
+            _logger.WriteLog($"Impossibile leggere il file: {filePath} - {ex.Message}", LogLevel.WARNING);
         }
     }
 }

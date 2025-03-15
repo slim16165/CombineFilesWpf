@@ -366,3 +366,4 @@ FodyWeavers.xsd
 /CombineFiles.zip
 /CombineFiles.Core/CombinedFile.cs
 /CombineFiles.ConsoleApp/CombinedFile.cs
+/CombinedFile.cs
