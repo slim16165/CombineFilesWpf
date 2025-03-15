@@ -56,6 +56,8 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.0" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\CombineFilesOptionsBinder.cs" />
+    <Compile Include="Helpers\OptionAliasGenerator.cs" />
     <Compile Include="Helpers\ParameterHelper.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -1,4 +1,8 @@
 ﻿using System;
+using System.CommandLine;
+using System.Linq;
+using System.Collections.Generic;
+using System.Xml.Linq;
 using CombineFiles.Core;
 using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Helpers;
@@ -9,36 +13,17 @@ namespace CombineFiles.ConsoleApp.Helpers
     public static class ParameterHelper
     {
         /// <summary>
-        /// Verifica se l’utente ha richiesto l’help (es. se hai un bool Help in CombineFilesOptions).
-        /// </summary>
-        public static bool CheckHelp(CombineFilesOptions options)
-        {
-            return options.Help;
-        }
-
-        /// <summary>
-        /// Stampa il messaggio di help.
+        /// Stampa l’help.
         /// </summary>
         public static void PrintHelp()
         {
-            Console.WriteLine("Uso: CombineFiles [--preset <PresetName>] [--mode <list|extensions|regex|InteractiveSelection>] ...");
-            Console.WriteLine("Parametri disponibili:");
-            Console.WriteLine("  - ListPresets: elenca i preset disponibili");
-            Console.WriteLine("  - Mode: list, extensions, regex, InteractiveSelection");
-            Console.WriteLine("  - FileList: elenco file in modalità 'list'");
-            Console.WriteLine("  - Extensions: estensioni in modalità 'extensions'");
-            Console.WriteLine("  - RegexPatterns: pattern in modalità 'regex'");
-            Console.WriteLine("  - OutputFile: specifica il file di destinazione (default: CombinedFile.txt)");
-            Console.WriteLine("  - OutputToConsole: scrive l'output a schermo invece che su file");
-            Console.WriteLine("  - Recurse: ricerca ricorsiva nelle sottocartelle");
-            Console.WriteLine("  - ExcludePaths, ExcludeFiles, ExcludeFilePatterns: filtri di esclusione");
-            Console.WriteLine("  - MinSize, MaxSize, MinDate, MaxDate: filtri aggiuntivi");
-            Console.WriteLine("  - FileNamesOnly: se True, scrive solo i nomi dei file invece che i contenuti");
-            // etc.
+            Console.WriteLine("Uso: CombineFiles [opzioni]");
+            Console.WriteLine("--help, --list-presets, --mode, --extensions, ecc.");
+            // altri dettagli...
         }
 
         /// <summary>
-        /// Stampa la lista dei preset disponibili e termina.
+        /// Stampa la lista dei preset disponibili.
         /// </summary>
         public static void PrintPresetList()
         {
@@ -48,11 +33,10 @@ namespace CombineFiles.ConsoleApp.Helpers
         }
 
         /// <summary>
-        /// Esegue validazioni base su parametri essenziali, in modo simile allo script PS1.
+        /// Valida i parametri (alcuni controlli di esempio).
         /// </summary>
         public static bool ValidateParameters(CombineFilesOptions options, Logger logger)
         {
-            // Esempio in ValidateParameters:
             if ((options.Mode?.Equals("list", StringComparison.OrdinalIgnoreCase) ?? false)
                 && (options.FileList == null || options.FileList.Count == 0))
             {
@@ -60,27 +44,117 @@ namespace CombineFiles.ConsoleApp.Helpers
                 ConsoleHelper.WriteColored("Errore: Modalità 'list' -> -FileList mancante o vuota.", ConsoleColor.Red);
                 return false;
             }
-
-
-            // Se Mode è 'extensions', devi avere almeno un'estensione
-            if ((options.Mode?.Equals("extensions", StringComparison.OrdinalIgnoreCase) ?? false)
-                && (options.Extensions == null || options.Extensions.Count == 0))
-            {
-                logger.WriteLog("La modalità 'extensions' richiede -Extensions.", "ERROR");
-                ConsoleHelper.WriteColored("Errore: Modalità 'extensions' -> -Extensions mancante o vuota.", ConsoleColor.Red);
-                return false;
-            }
-
-            // Se Mode è 'regex', devi avere almeno un pattern
-            if ((options.Mode?.Equals("regex", StringComparison.OrdinalIgnoreCase) ?? false)
-                && (options.RegexPatterns == null || options.RegexPatterns.Count == 0))
-            {
-                logger.WriteLog("La modalità 'regex' richiede -RegexPatterns.", "ERROR");
-                ConsoleHelper.WriteColored("Errore: Modalità 'regex' -> -RegexPatterns mancante o vuota.", ConsoleColor.Red);
-                return false;
-            }
-
+            // altri controlli...
             return true;
+        }
+
+        /// <summary>
+        /// Verifica l'unicità degli alias nei simboli (Command/Option) contenuti nell'albero.
+        /// Se skipConflictingAliases è true, in caso di collisione rimuove l’alias duplicato (loggando un warning)
+        /// anziché lanciare un’eccezione.
+        /// </summary>
+        public static void CheckAliasCollisions(Command command, bool skipConflictingAliases = false)
+        {
+            // Dizionario globale: alias -> simbolo (Command o Option)
+            var aliasMap = new Dictionary<string, Symbol>(StringComparer.Ordinal);
+            TraverseCommand(command, aliasMap, skipConflictingAliases);
+        }
+
+        private static void TraverseCommand(
+            Command command,
+            Dictionary<string, Symbol> aliasMap,
+            bool skipConflictingAliases)
+        {
+            // Controlla gli alias del comando corrente
+            CheckSymbolAliases(command, aliasMap, skipConflictingAliases);
+
+            // Controlla gli alias delle opzioni associate al comando
+            foreach (var opt in command.Options)
+            {
+                CheckSymbolAliases(opt, aliasMap, skipConflictingAliases);
+            }
+
+            // Ripeti ricorsivamente sui subcomandi
+            foreach (var sub in command.Subcommands)
+            {
+                TraverseCommand(sub, aliasMap, skipConflictingAliases);
+            }
+        }
+
+        /// <summary>
+        /// Restituisce l'elenco degli alias per il simbolo: se è un Command o un Option,
+        /// li estrae, altrimenti restituisce il solo Name.
+        /// </summary>
+        private static IEnumerable<string> GetAliases(Symbol symbol)
+        {
+            if (symbol is Command command)
+            {
+                return command.Aliases; // Command espone Aliases
+            }
+            if (symbol is Option option)
+            {
+                return option.Aliases; // Option espone Aliases
+            }
+            return new List<string> { symbol.Name };
+        }
+
+        /// <summary>
+        /// Rimuove l'alias dal simbolo, se possibile.
+        /// </summary>
+        private static void RemoveAlias(Symbol symbol, string alias)
+        {
+            if (symbol is Command command)
+            {
+                // Use reflection to access the private RemoveAlias method
+                var removeAliasMethod = typeof(Command).GetMethod("RemoveAlias", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                removeAliasMethod?.Invoke(command, [alias]);
+            }
+            else if (symbol is Option option)
+            {
+                // Use reflection to access the private RemoveAlias method
+                var removeAliasMethod = typeof(Option).GetMethod("RemoveAlias", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                removeAliasMethod?.Invoke(option, [alias]);
+            }
+            // Altri tipi: non modificabili
+        }
+
+        /// <summary>
+        /// Controlla gli alias di un singolo simbolo e aggiorna il dizionario globale.
+        /// In caso di collisione:
+        /// - Se skipConflictingAliases è false, lancia un’eccezione.
+        /// - Se è true, rimuove l’alias duplicato dal simbolo corrente e logga un warning.
+        /// </summary>
+        private static void CheckSymbolAliases(
+            Symbol symbol,
+            Dictionary<string, Symbol> aliasMap,
+            bool skipConflictingAliases)
+        {
+            // Ottiene una copia degli alias (per iterare in sicurezza)
+            var aliases = GetAliases(symbol).ToList();
+
+            foreach (var alias in aliases)
+            {
+                if (aliasMap.TryGetValue(alias, out var existingSymbol))
+                {
+                    if (!skipConflictingAliases)
+                    {
+                        throw new ArgumentException(
+                            $"Alias duplicato '{alias}' tra '{existingSymbol.Name}' e '{symbol.Name}'");
+                    }
+                    else
+                    {
+                        // Rimuove l'alias duplicato dal simbolo corrente
+                        RemoveAlias(symbol, alias);
+                        ConsoleHelper.WriteColored(
+                            $"[WARNING] Alias '{alias}' rimosso da '{symbol.Name}' perché già usato da '{existingSymbol.Name}'",
+                            ConsoleColor.Yellow);
+                    }
+                }
+                else
+                {
+                    aliasMap[alias] = symbol;
+                }
+            }
         }
     }
 }

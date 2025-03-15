@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
-using System.CommandLine.Binding;
 using System.CommandLine.Builder;
 using System.CommandLine.Parsing;
 using System.IO;
@@ -14,7 +13,6 @@ using CombineFiles.Core.Configuration;
 using CombineFiles.Core.Helpers;
 using CombineFiles.Core.Infrastructure;
 using CombineFiles.Core.Services;
-using Microsoft.Build.Utilities;
 using CommandLineBuilder = System.CommandLine.Builder.CommandLineBuilder;
 using Logger = CombineFiles.Core.Infrastructure.Logger;
 
@@ -25,8 +23,17 @@ namespace CombineFiles.ConsoleApp
         static async Task<int> Main(string[] args)
         {
             var rootCommand = CreateRootCommand();
+
+            // ESEMPIO: controlla collisioni e RIMUOVE gli alias duplicati
+            // (invece di lanciare eccezioni)
+            ParameterHelper.CheckAliasCollisions(
+                rootCommand,
+                skipConflictingAliases: true /* se false => lancia eccezione */
+            );
+
             var commandLineBuilder = new CommandLineBuilder(rootCommand)
                 .UseDefaults();
+
             var parser = commandLineBuilder.Build();
             return await parser.InvokeAsync(args);
         }
@@ -39,16 +46,21 @@ namespace CombineFiles.ConsoleApp
             var rootCommand = new RootCommand("Strumento per combinare file seguendo diverse modalità di selezione");
 
             // Creazione di ogni opzione tramite un helper che genera automaticamente gli alias.
-            var helpOption = CreateOption<bool>("help", "Mostra l'aiuto");
-            var listPresetsOption = CreateOption<bool>("list-presets", "Mostra l'elenco dei preset disponibili", shortAlias: "l");
-            var presetOption = CreateOption<string>("preset", "Specifica il preset da utilizzare", shortAlias: "p");
-            var modeOption = CreateOption<string>("mode", "Modalità di selezione (list, extensions, regex, InteractiveSelection)", shortAlias: "m");
-            var extensionsOption = CreateOption<List<string>>("extensions", "Elenco di estensioni da includere", shortAlias: "e");
-            var excludePathsOption = CreateOption<List<string>>("exclude-paths", "Percorsi da escludere", shortAlias: "ep");
-            var excludeFilePatternsOption = CreateOption<List<string>>("exclude-file-patterns", "Pattern regex per escludere file", shortAlias: "efp");
+            // Per evitare molte collisioni, potresti abilitare meno alias "sinonimi"
+            var helpOption = CreateOption<bool>("help", "Mostra l'aiuto", defaultValue: false, addDefaultValue: false, shortAlias: "h");
+            var listPresetsOption = CreateOption<bool>("list-presets", "Mostra l'elenco dei preset disponibili", defaultValue: false, addDefaultValue: false, shortAlias: "l");
+            var presetOption = CreateOption<string>("preset", "Specifica il preset da utilizzare", defaultValue: "", addDefaultValue: false, shortAlias: "p");
+
+            var modeOption = CreateOption<string>("mode", "Modalità di selezione (list, extensions, regex, InteractiveSelection)", defaultValue: "", addDefaultValue: false, shortAlias: "m");
+
+            var extensionsOption = CreateOption<List<string>>("extensions", "Elenco di estensioni da includere", defaultValue: null, addDefaultValue: false, shortAlias: null);
+            var excludePathsOption = CreateOption<List<string>>("exclude-paths", "Percorsi da escludere", defaultValue: null, addDefaultValue: false, shortAlias: null);
+            var excludeFilePatternsOption = CreateOption<List<string>>("exclude-file-patterns", "Pattern regex per escludere file", defaultValue: null, addDefaultValue: false, shortAlias: null);
+
             var outputFileOption = CreateOption("output-file", "File di output", "CombinedFile.txt", shortAlias: "o");
-            var recurseOption = CreateOption<bool>("recurse", "Ricerca ricorsiva nelle sottocartelle");
-            var enableLogOption = CreateOption<bool>("enable-log", "Abilita la generazione del log");
+            var recurseOption = CreateOption<bool>("recurse", "Ricerca ricorsiva nelle sottocartelle", defaultValue: false, addDefaultValue: false);
+            var enableLogOption = CreateOption<bool>("enable-log", "Abilita la generazione del log", defaultValue: false, addDefaultValue: false);
+
 
             // Aggiunta delle opzioni al comando radice
             rootCommand.AddOption(helpOption);
@@ -86,31 +98,21 @@ namespace CombineFiles.ConsoleApp
         /// </summary>
         private static void Execute(CombineFilesOptions options)
         {
-            // Flusso lineare: se un metodo restituisce 'true', significa che
-            // non dobbiamo procedere oltre e usciamo direttamente.
-
             if (HandleHelpAndPresets(options)) return;
             if (!ApplyPresetSafely(options)) return;
 
-            // Inizializziamo il logger
-            var logger = InitializeLogger(options); 
+            var logger = InitializeLogger(options);
 
             if (!ValidateOptions(options, logger)) return;
 
-            // Normalizziamo i percorsi da escludere
             string sourcePath = Directory.GetCurrentDirectory();
             var normalizedExcludePaths = PathHelper.NormalizeExcludePaths(options.ExcludePaths, sourcePath, logger);
 
-            // Aggiungiamo l'output file agli esclusi (se necessario)
             ExcludeOutputFileIfNeeded(options, logger);
 
-            // Raccolta dei file (in base a 'Mode')
             var filesToProcess = CollectFiles(options, logger, normalizedExcludePaths, sourcePath);
-
-            // Filtri successivi (date, dimensioni e <auto-generated>)
             filesToProcess = FilterFiles(filesToProcess, options, logger);
 
-            // Se nessun file rimane, usciamo
             if (filesToProcess.Count == 0)
             {
                 logger.WriteLog("Nessun file trovato per l'unione.", "WARNING");
@@ -118,19 +120,13 @@ namespace CombineFiles.ConsoleApp
                 return;
             }
 
-            // Prepara il file di output (o console)
             if (!PrepareOutputFile(options, logger)) return;
 
-            // Merge dei file
             MergeFiles(filesToProcess, options, logger);
         }
 
         #region Metodi Helper di "Execute"
 
-        /// <summary>
-        /// Gestisce la logica di --help e --list-presets, terminando il programma se appropriato.
-        /// Restituisce true se deve terminare il flusso.
-        /// </summary>
         private static bool HandleHelpAndPresets(CombineFilesOptions options)
         {
             if (options.Help)
@@ -138,20 +134,14 @@ namespace CombineFiles.ConsoleApp
                 ParameterHelper.PrintHelp();
                 return true;
             }
-
             if (options.ListPresets)
             {
                 ParameterHelper.PrintPresetList();
                 return true;
             }
-
             return false;
         }
 
-        /// <summary>
-        /// Tenta di applicare il preset e gestisce eventuali eccezioni mostrando un messaggio.
-        /// Restituisce false se si è verificato un errore e dobbiamo interrompere.
-        /// </summary>
         private static bool ApplyPresetSafely(CombineFilesOptions options)
         {
             try
@@ -166,9 +156,6 @@ namespace CombineFiles.ConsoleApp
             }
         }
 
-        /// <summary>
-        /// Inizializza il logger, scrive il messaggio di avvio e lo restituisce.
-        /// </summary>
         private static Logger InitializeLogger(CombineFilesOptions options)
         {
             string sourcePath = Directory.GetCurrentDirectory();
@@ -178,23 +165,11 @@ namespace CombineFiles.ConsoleApp
             return logger;
         }
 
-        /// <summary>
-        /// Valida i parametri usando il ParameterHelper; se invalidi, logga e termina.
-        /// Restituisce false se la validazione fallisce.
-        /// </summary>
         private static bool ValidateOptions(CombineFilesOptions options, Logger logger)
         {
-            if (!ParameterHelper.ValidateParameters(options, logger))
-            {
-                return false;
-            }
-            return true;
+            return ParameterHelper.ValidateParameters(options, logger);
         }
 
-        /// <summary>
-        /// Se l'output non va in console e il file di output è valorizzato,
-        /// lo aggiunge all'elenco dei file esclusi per evitare conflitti.
-        /// </summary>
         private static void ExcludeOutputFileIfNeeded(CombineFilesOptions options, Logger logger)
         {
             if (!options.OutputToConsole && !string.IsNullOrWhiteSpace(options.OutputFile))
@@ -203,16 +178,11 @@ namespace CombineFiles.ConsoleApp
                 if (!string.IsNullOrEmpty(outFileName))
                 {
                     options.ExcludeFiles.Add(outFileName);
-                    logger.WriteLog(
-                        $"Aggiunto {outFileName} alla lista dei file esclusi (per evitare conflitti).",
-                        "DEBUG");
+                    logger.WriteLog($"Aggiunto {outFileName} alla lista dei file esclusi (per evitare conflitti).", "DEBUG");
                 }
             }
         }
 
-        /// <summary>
-        /// Colleziona i file in base al "Mode" impostato e ai parametri di esclusione.
-        /// </summary>
         private static List<string> CollectFiles(
             CombineFilesOptions options,
             Logger logger,
@@ -220,23 +190,17 @@ namespace CombineFiles.ConsoleApp
             string sourcePath)
         {
             logger.WriteLog("Inizio raccolta file...", "INFO");
-
             var fileCollector = new FileCollector(
                 logger,
                 normalizedExcludePaths,
                 options.ExcludeFiles,
                 options.ExcludeFilePatterns
             );
-
             var filesToProcess = FileCollectionHelper.CollectFiles(options, logger, fileCollector, sourcePath);
             logger.WriteLog($"Numero file iniziali: {filesToProcess.Count}", "INFO");
-
             return filesToProcess;
         }
 
-        /// <summary>
-        /// Applica i filtri su date/dimensioni e rimuove i file contenenti auto-generated.
-        /// </summary>
         private static List<string> FilterFiles(
             List<string> files,
             CombineFilesOptions options,
@@ -251,10 +215,6 @@ namespace CombineFiles.ConsoleApp
             return filtered;
         }
 
-        /// <summary>
-        /// Prepara il file di output (o console), creando/controllando la cartella, e gestendo l’encoding.
-        /// Restituisce false se si verifica un errore e bisogna interrompere.
-        /// </summary>
         private static bool PrepareOutputFile(CombineFilesOptions options, Logger logger)
         {
             if (options.OutputToConsole || string.IsNullOrWhiteSpace(options.OutputFile))
@@ -262,7 +222,6 @@ namespace CombineFiles.ConsoleApp
 
             try
             {
-                // In questo esempio usiamo sempre UTF8
                 Encoding selectedEncoding = Encoding.UTF8;
                 OutputFileHelper.PrepareOutputFile(options.OutputFile, options.OutputFormat, selectedEncoding, logger);
                 return true;
@@ -275,9 +234,6 @@ namespace CombineFiles.ConsoleApp
             }
         }
 
-        /// <summary>
-        /// Esegue effettivamente il merge e scrive il risultato su file o su console.
-        /// </summary>
         private static void MergeFiles(List<string> filesToProcess, CombineFilesOptions options, Logger logger)
         {
             var fileMerger = new FileMerger(
@@ -306,8 +262,10 @@ namespace CombineFiles.ConsoleApp
         #region Funzioni di creazione Opzioni e Binder
 
         /// <summary>
-        /// Helper per creare un'istanza di Option con alias generati automaticamente,
-        /// eventualmente aggiungendo un alias breve personalizzato (shortAlias).
+        /// Crea una Option<T> con il solo alias lungo "--baseName".
+        /// Se `shortAlias` non è null o vuoto, aggiunge anche quello.
+        /// In più, se baseName inizia con 'e', ignora del tutto la creazione del shortAlias 
+        /// per evitare collisioni.
         /// </summary>
         private static Option<T> CreateOption<T>(
             string baseName,
@@ -316,29 +274,38 @@ namespace CombineFiles.ConsoleApp
             bool addDefaultValue = false,
             string? shortAlias = null)
         {
-            // Generiamo gli alias usando l'OptionAliasGenerator
-            var aliases = new List<string?>(OptionAliasGenerator.GenerateAliases(baseName));
+            // 1) Genera l'alias lungo baseName (es. "--mode")
+            var aliases = new List<string> { $"--{baseName}" };
 
-            // Aggiunta opzionale di un alias breve personalizzato (es. -m, -o, ecc.)
+            // 2) Se la baseName inizia con 'e', forza l'eliminazione di shortAlias
+            // (per evitare collisioni).
+            if (!string.IsNullOrEmpty(baseName) && baseName.StartsWith("e", StringComparison.OrdinalIgnoreCase))
+            {
+                shortAlias = null;
+            }
+
+            // 3) Se shortAlias è esplicitamente richiesto, e non è già presente, aggiungilo.
             if (!string.IsNullOrEmpty(shortAlias))
             {
                 if (!shortAlias.StartsWith("-"))
                     shortAlias = "-" + shortAlias;
+
+                // Aggiungi il -x tra gli alias, se non duplicato
                 if (!aliases.Contains(shortAlias))
                     aliases.Add(shortAlias);
             }
 
-
+            // 4) Crea la option con o senza default
             Option<T> option;
             if (addDefaultValue)
             {
-                // Se vogliamo un valore di default, costruiamo l'opzione col delegate
                 option = new Option<T>(aliases.ToArray(), () => defaultValue, description);
             }
             else
             {
                 option = new Option<T>(aliases.ToArray(), description);
             }
+
             return option;
         }
 
@@ -354,90 +321,6 @@ namespace CombineFiles.ConsoleApp
             return CreateOption(baseName, description, defaultValue, addDefaultValue: true, shortAlias);
         }
 
-        public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
-        {
-            private readonly Option<bool> _helpOption;
-            private readonly Option<bool> _listPresetsOption;
-            private readonly Option<string> _presetOption;
-            private readonly Option<string> _modeOption;
-            private readonly Option<List<string>> _extensionsOption;
-            private readonly Option<List<string>> _excludePathsOption;
-            private readonly Option<List<string>> _excludeFilePatternsOption;
-            private readonly Option<string> _outputFileOption;
-            private readonly Option<bool> _recurseOption;
-            private readonly Option<bool> _enableLogOption;
-
-            public CombineFilesOptionsBinder(
-                Option<bool> helpOption,
-                Option<bool> listPresetsOption,
-                Option<string> presetOption,
-                Option<string> modeOption,
-                Option<List<string>> extensionsOption,
-                Option<List<string>> excludePathsOption,
-                Option<List<string>> excludeFilePatternsOption,
-                Option<string> outputFileOption,
-                Option<bool> recurseOption,
-                Option<bool> enableLogOption)
-            {
-                _helpOption = helpOption;
-                _listPresetsOption = listPresetsOption;
-                _presetOption = presetOption;
-                _modeOption = modeOption;
-                _extensionsOption = extensionsOption;
-                _excludePathsOption = excludePathsOption;
-                _excludeFilePatternsOption = excludeFilePatternsOption;
-                _outputFileOption = outputFileOption;
-                _recurseOption = recurseOption;
-                _enableLogOption = enableLogOption;
-            }
-
-            protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
-            {
-                return new CombineFilesOptions
-                {
-                    Help = bindingContext.ParseResult.GetValueForOption(_helpOption),
-                    ListPresets = bindingContext.ParseResult.GetValueForOption(_listPresetsOption),
-                    Preset = bindingContext.ParseResult.GetValueForOption(_presetOption),
-                    Mode = bindingContext.ParseResult.GetValueForOption(_modeOption),
-                    Extensions = bindingContext.ParseResult.GetValueForOption(_extensionsOption) ?? new List<string>(),
-                    ExcludePaths = bindingContext.ParseResult.GetValueForOption(_excludePathsOption) ?? new List<string>(),
-                    ExcludeFilePatterns = bindingContext.ParseResult.GetValueForOption(_excludeFilePatternsOption) ?? new List<string>(),
-                    OutputFile = bindingContext.ParseResult.GetValueForOption(_outputFileOption),
-                    Recurse = bindingContext.ParseResult.GetValueForOption(_recurseOption),
-                    EnableLog = bindingContext.ParseResult.GetValueForOption(_enableLogOption)
-                };
-            }
-        }
-
         #endregion
-    }
-
-    /// <summary>
-    /// Helper che genera alias (--lower, -l, --UPPER, -U, --Title, -Title)
-    /// </summary>
-    public static class OptionAliasGenerator
-    {
-        public static string[] GenerateAliases(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-                throw new ArgumentException("Il nome non può essere nullo o vuoto.", nameof(name));
-
-            string lower = name.ToLowerInvariant();
-            string upper = name.ToUpperInvariant();
-            string title = char.ToUpperInvariant(lower[0]) + lower.Substring(1);
-
-            // Crea una lista senza duplicati
-            var aliases = new HashSet<string>
-            {
-                $"--{lower}",
-                $"-{lower[0]}",
-                $"--{upper}",
-                $"-{upper[0]}",
-                $"--{title}",
-                $"-{title}"
-            };
-            return aliases.ToArray();
-        }
-
     }
 }
