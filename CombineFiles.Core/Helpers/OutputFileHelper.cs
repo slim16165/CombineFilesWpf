@@ -9,7 +9,7 @@ public static class OutputFileHelper
     /// <summary>
     /// Svuota o crea il file di output (equivalente a "Out-File -Force" in PowerShell).
     /// </summary>
-    public static void PrepareOutputFile(string? outputFile, string outputFormat, Encoding encoding, Logger logger)
+    public static void PrepareOutputFile(string? outputFile, Encoding encoding, Logger logger)
     {
         File.WriteAllText(outputFile, string.Empty, encoding);
         logger.WriteLog($"File di output creato/svuotato: {outputFile}", LogLevel.INFO);

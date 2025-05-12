@@ -3,6 +3,7 @@ using Microsoft.Win32;
 
 namespace CombineFiles.ShellUi;
 
+[Obsolete("Al momento non è usato")]
 public static class ContextMenuRegistration
 {
     private const string MenuName = "*\\shell\\Copia con CombineFiles";

@@ -153,7 +153,7 @@ public static class ExecutionFlow
         try
         {
             Encoding selectedEncoding = Encoding.UTF8;
-            OutputFileHelper.PrepareOutputFile(options.OutputFile, options.OutputFormat, selectedEncoding, logger);
+            OutputFileHelper.PrepareOutputFile(options.OutputFile, selectedEncoding, logger);
             return true;
         }
         catch (Exception ex)
@@ -170,8 +170,7 @@ public static class ExecutionFlow
             logger,
             options.OutputToConsole,
             options.OutputFile,
-            options.OutputFormat,
-            options.FileNamesOnly
+            options.ListOnlyFileNames
         );
 
         // Utilizziamo la progress bar di Spectre.Console

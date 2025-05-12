@@ -9,6 +9,7 @@ using CombineFiles.Core.Helpers;
 
 namespace CombineFiles.Core;
 
+[Obsolete("Usato solo dalla versione standalone")]
 public static class FileProcessor
 {
     /// <summary>

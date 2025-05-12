@@ -19,7 +19,7 @@ public class CombineFilesOptions
     public string? OutputFile { get; set; } = DefaultOutputFile;
     public bool OutputToConsole { get; set; }
     public string OutputFormat { get; set; } = "txt";
-    public bool FileNamesOnly { get; set; }
+    public bool ListOnlyFileNames { get; set; }
     public string MinSize { get; set; }
     public string MaxSize { get; set; }
     public DateTime? MinDate { get; set; }
