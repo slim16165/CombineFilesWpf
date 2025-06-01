@@ -2,6 +2,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using CombineFiles.ConsoleApp.Helpers;
+using CombineFiles.ConsoleApp.Interactive;
 using CombineFiles.Core.Configuration;
 
 namespace CombineFiles.ConsoleApp.Extensions;
@@ -62,6 +63,7 @@ public static class RootCommandBuilder
         var enableLogOption = OptionBuilder.For<bool>("Enable-log")
             .WithDescription("Abilita la generazione del log")
             .Build();
+        var interactiveOpt = OptionBuilder.For<bool>("Interactive").WithDescription("Launch interactive configuration wizard").WithShortAlias("i").Build();
 
         // Aggiunta delle opzioni al comando radice
         rootCommand.AddOption(helpOption);
@@ -74,10 +76,20 @@ public static class RootCommandBuilder
         rootCommand.AddOption(outputFileOption);
         rootCommand.AddOption(recurseOption);
         rootCommand.AddOption(enableLogOption);
+        rootCommand.AddOption(interactiveOpt);
 
         // Imposta il gestore con un binder personalizzato
         rootCommand.SetHandler(
-            (CombineFilesOptions options) => ExecutionFlow.Execute(options),
+            (CombineFilesOptions options) =>
+            {
+                // If --interactive flag is present, open Spectre.Console wizard
+                if (options.Interactive)
+                {
+                    options = InteractiveMode.Run();
+                }
+
+                ExecutionFlow.Execute(options);
+            },
             new CombineFilesOptionsBinder(
                 helpOption,
                 listPresetsOption,
@@ -88,8 +100,8 @@ public static class RootCommandBuilder
                 excludeFilePatternsOption,
                 outputFileOption,
                 recurseOption,
-                enableLogOption
-            ));
+                enableLogOption,
+                interactiveOpt));
 
         return rootCommand;
     }

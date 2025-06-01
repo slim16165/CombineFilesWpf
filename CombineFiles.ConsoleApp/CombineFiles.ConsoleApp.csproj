@@ -59,7 +59,10 @@
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Interactive\InteractiveMode.cs" />
     <Compile Include="Extensions\ExecutionFlow.cs" />
+    <Compile Include="Interactive\InteractiveFolderSelector.cs" />
+    <Compile Include="Interactive\InteractiveRegexInput.cs" />
     <Compile Include="Extensions\OptionBuilder.cs" />
     <Compile Include="Helpers\CombineFilesOptionsBinder.cs" />
     <Compile Include="Helpers\ParameterHelper.cs" />

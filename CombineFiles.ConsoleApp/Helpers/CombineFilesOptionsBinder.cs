@@ -17,9 +17,9 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
     private readonly Option<string> _outputFileOption;
     private readonly Option<bool> _recurseOption;
     private readonly Option<bool> _enableLogOption;
+    private readonly Option<bool> _interactiveOption;
 
-    public CombineFilesOptionsBinder(
-        Option<bool> helpOption,
+    public CombineFilesOptionsBinder(Option<bool> helpOption,
         Option<bool> listPresetsOption,
         Option<string> presetOption,
         Option<string> modeOption,
@@ -28,7 +28,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         Option<List<string>> excludeFilePatternsOption,
         Option<string> outputFileOption,
         Option<bool> recurseOption,
-        Option<bool> enableLogOption)
+        Option<bool> enableLogOption, 
+        Option<bool> interactiveOption)
     {
         _helpOption = helpOption;
         _listPresetsOption = listPresetsOption;
@@ -40,6 +41,7 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         _outputFileOption = outputFileOption;
         _recurseOption = recurseOption;
         _enableLogOption = enableLogOption;
+        _interactiveOption = interactiveOption;
     }
 
     protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
@@ -55,7 +57,9 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
             ExcludeFilePatterns = bindingContext.ParseResult.GetValueForOption(_excludeFilePatternsOption) ?? new List<string>(),
             OutputFile = bindingContext.ParseResult.GetValueForOption(_outputFileOption),
             Recurse = bindingContext.ParseResult.GetValueForOption(_recurseOption),
-            EnableLog = bindingContext.ParseResult.GetValueForOption(_enableLogOption)
+            EnableLog = bindingContext.ParseResult.GetValueForOption(_enableLogOption),
+            Interactive = bindingContext.ParseResult.GetValueForOption(_interactiveOption),
+
         };
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using System.Collections.Generic;
 
 namespace CombineFiles.Core.Configuration;
@@ -24,6 +25,9 @@ public class CombineFilesOptions
     public string MaxSize { get; set; }
     public int MaxLinesPerFile { get; set; }      // 0 = senza limite di righe
     public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
+
+    //starts full‑screen interactive wizard
+    public bool Interactive { get; set; }
 
     public DateTime? MinDate { get; set; }
     public DateTime? MaxDate { get; set; }
