@@ -12,7 +12,8 @@ namespace CombineFiles.Core.Helpers;
 public static class FileCollectionHelper
 {
     /// <summary>
-    /// Metodo “unico” che, in base a options.Mode, decide come ottenere la lista di file.
+    /// Metodo “unico” che, in base a options.Mode, decide come ottenere la lista di file
+    /// e applica filtraggio per dimensione (MinSize/MaxSize).
     /// </summary>
     public static List<string> CollectFiles(CombineFilesOptions options, Logger logger, FileCollector collector, string sourcePath)
     {
@@ -35,7 +36,6 @@ public static class FileCollectionHelper
             case "interactiveselection":
                 // Ottieni prima i file per estensione
                 filesToProcess = HandleExtensionsMode(options, logger, collector);
-
                 // Poi avvia la selezione interattiva
                 filesToProcess = collector.StartInteractiveSelection(filesToProcess, sourcePath);
                 break;
@@ -46,6 +46,8 @@ public static class FileCollectionHelper
                 break;
         }
 
+        // Applichiamo sempre il filtro per dimensione (MinSize/MaxSize)
+        filesToProcess = FilterBySize(filesToProcess, options, logger);
         return filesToProcess;
     }
 
@@ -119,5 +121,78 @@ public static class FileCollectionHelper
         matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         logger.WriteLog($"File da processare (regex): {matched.Count}", LogLevel.INFO);
         return matched;
+    }
+
+    /// <summary>
+    /// Filtra la lista di file in base a MinSize/MaxSize (convertiti in byte).
+    /// Logga a livello INFO quanti file sono stati rimossi per dimensione.
+    /// </summary>
+    private static List<string> FilterBySize(List<string> files, CombineFilesOptions options, Logger logger)
+    {
+        long maxBytes = 0;
+        long minBytes = 0;
+
+        if (!string.IsNullOrWhiteSpace(options.MaxSize))
+        {
+            try
+            {
+                maxBytes = FileHelper.ConvertSizeToBytes(options.MaxSize);
+            }
+            catch (Exception ex)
+            {
+                logger.WriteLog($"Formato MaxSize non valido ('{options.MaxSize}'): {ex.Message}", LogLevel.WARNING);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.MinSize))
+        {
+            try
+            {
+                minBytes = FileHelper.ConvertSizeToBytes(options.MinSize);
+            }
+            catch (Exception ex)
+            {
+                logger.WriteLog($"Formato MinSize non valido ('{options.MinSize}'): {ex.Message}", LogLevel.WARNING);
+            }
+        }
+
+        if (maxBytes <= 0 && minBytes <= 0)
+            return files;
+
+        var filtered = new List<string>();
+        int removedCount = 0;
+
+        foreach (var path in files)
+        {
+            long length;
+            try
+            {
+                length = new FileInfo(path).Length;
+            }
+            catch (Exception ex)
+            {
+                logger.WriteLog($"Impossibile leggere dimensione file '{path}': {ex.Message}", LogLevel.WARNING);
+                continue;
+            }
+
+            if (maxBytes > 0 && length > maxBytes)
+            {
+                removedCount++;
+                logger.WriteLog($"Escludo per dimensione > MaxSize: {path} ({length} byte)", LogLevel.DEBUG);
+                continue;
+            }
+
+            if (minBytes > 0 && length < minBytes)
+            {
+                removedCount++;
+                logger.WriteLog($"Escludo per dimensione < MinSize: {path} ({length} byte)", LogLevel.DEBUG);
+                continue;
+            }
+
+            filtered.Add(path);
+        }
+
+        logger.WriteLog($"Filtraggio dimensione: rimossi {removedCount} file, rimangono {filtered.Count}", LogLevel.INFO);
+        return filtered;
     }
 }

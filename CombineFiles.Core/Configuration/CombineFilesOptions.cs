@@ -22,6 +22,9 @@ public class CombineFilesOptions
     public bool ListOnlyFileNames { get; set; }
     public string MinSize { get; set; }
     public string MaxSize { get; set; }
+    public int MaxLinesPerFile { get; set; }      // 0 = senza limite di righe
+    public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
+
     public DateTime? MinDate { get; set; }
     public DateTime? MaxDate { get; set; }
     public bool Recurse { get; set; }
