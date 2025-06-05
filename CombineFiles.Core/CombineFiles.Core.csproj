@@ -1,118 +1,53 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{385100D8-E4CC-4B4A-ABA4-6085F0900B38}</ProjectGuid>
-    <OutputType>library</OutputType>
-    <RootNamespace>CombineFiles.Core</RootNamespace>
-    <AssemblyName>CombineFiles.Core</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <WarningLevel>4</WarningLevel>
-    <Deterministic>true</Deterministic>
-    <RuntimeIdentifiers>win</RuntimeIdentifiers>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Numerics" />
-    <Reference Include="System.Xml" />
-    <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Net.Http" />
-    <Reference Include="System.Xaml">
-      <RequiredTargetFramework>4.0</RequiredTargetFramework>
-    </Reference>
-    <Reference Include="WindowsBase" />
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Configuration\CombineFilesOptions.cs" />
-    <Compile Include="Handlers\CsvContentHandler.cs" />
-    <Compile Include="Handlers\DefaultContentHandler.cs" />
-    <Compile Include="FileProcessor.cs" />
-    <Compile Include="Helpers\ConsoleHelper.cs" />
-    <Compile Include="Helpers\FileCollectionHelper.cs" />
-    <Compile Include="Helpers\FileHelper.cs" />
-    <Compile Include="Helpers\FileSystemHelper.cs" />
-    <Compile Include="Helpers\FileFilterHelper.cs" />
-    <Compile Include="Helpers\OutputFileHelper.cs" />
-    <Compile Include="Helpers\PathHelper.cs" />
-    <Compile Include="Infrastructure\Logger.cs" />
-    <Compile Include="Infrastructure\LogLevel.cs" />
-    <Compile Include="PresetManager.cs" />
-    <Compile Include="Services\FileCollector.cs" />
-    <Compile Include="Services\FileMerger.cs" />
-    <Compile Include="Services\FileOperationsService.cs" />
-    <Compile Include="Configuration\FileProcessingConfig.cs" />
-    <Compile Include="Handlers\IFileContentHandler.cs" />
-    <Compile Include="Handlers\JsonContentHandler.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <None Include="app.config" />
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <ItemGroup>
-    <PackageReference Include="CsvHelper">
-      <Version>33.0.1</Version>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.5" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Spectre.Console">
-      <Version>0.50.0</Version>
-    </PackageReference>
-    <PackageReference Include="System.Buffers" Version="4.6.1" />
-    <PackageReference Include="System.IO.Pipelines" Version="9.0.5" />
-    <PackageReference Include="System.Memory" Version="4.6.3" />
-    <PackageReference Include="System.Numerics.Vectors" Version="4.6.1" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.2" />
-    <PackageReference Include="System.Text.Encodings.Web" Version="9.0.5" />
-    <PackageReference Include="System.Text.Json" Version="9.0.5" />
-    <PackageReference Include="System.Threading.Tasks.Extensions" Version="4.6.3" />
-    <PackageReference Include="System.ValueTuple" Version="4.6.1" />
-  </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- 1) Multi-target per compatibilità con .NET Framework 4.7.2, .NET Standard e .NET 8 -->
+		<TargetFrameworks>net472</TargetFrameworks>
+		<LangVersion>12</LangVersion>
+
+		<!-- 3) Genera il pacchetto NuGet al build -->
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+
+		<!-- 4) Disabilita la generazione automatica di AssemblyInfo (eviti duplicati se hai attributi personalizzati) -->
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+		<!-- 5) Metadata NuGet (adatta secondo le tue esigenze) -->
+		<PackageId>CombineFiles.Core</PackageId>
+		<Version>1.3.0</Version>
+		<Authors>Gianluigi Salvi</Authors>
+		<Description>Library to merge multiple files with optional deduplication, line-limits and token budgets.</Description>
+		<PackageTags>merge;files;deduplication;cli</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/slim16165/CombineFilesWpf</RepositoryUrl>
+		<PackageProjectUrl>https://github.com/slim16165/CombineFilesWpf</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<!-- 6) Abilita Nullable e ImplicitUsings solo dove il TFM supporta C# 10 .-->
+	<!--    In particolare: net8.0 e netstandard2.1 possono usare Nullable/ImplicitUsings; net472 di base no, -->
+	<!--    ma siccome abbiamo già forzato LangVersion=10, possiamo evitare che generi global usings per net472. -->
+	<PropertyGroup Condition="'$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'netstandard2.1'">
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
+
+	<!-- 7) Rimuovi dipendenze CLI/UI non necessarie in Core; mantieni solo quelle strettamente logiche -->
+	<ItemGroup>
+		<!-- Esempio: se la tua libreria core NON usa Spectre.Console o WPF, rimuovi quei riferimenti -->
+		 <PackageReference Include="CsvHelper" Version="33.1.0" />
+		 <PackageReference Include="Spectre.Console" Version="0.50.0" /> 
+
+		<!-- Solo pacchetti utili al “core” di merging (esempio) -->
+		<PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" Condition="'$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net8.0'" />
+		<!-- Se hai bisogno di SourceLink per debugging dal pacchetto -->
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+		<PackageReference Include="System.Text.Json" Version="9.0.6" />
+	</ItemGroup>
+
+	<!-- 8) Includi README e LICENSE nel NuGet -->
+	<ItemGroup>
+		<None Include="README.md" Pack="true" PackagePath="" />
+		<None Include="LICENSE.txt" Pack="true" PackagePath="" />
+	</ItemGroup>
+
 </Project>
