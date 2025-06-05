@@ -1,0 +1,96 @@
+name: CI e Publish
+
+on:
+  push:
+    branches:
+      - '**'            # qualsiasi push (build sempre)
+    tags:
+      - 'v*.*.*'        # quando viene creato un tag vX.Y.Z
+  pull_request:
+    branches:
+      - '**'            # build anche su PR
+
+jobs:
+  #------------------------------------------------------------------------------
+  # 1) Job di build “base”: si attiva su ogni push/PR che NON è un tag v*
+  #    Compila il progetto e carica un artifact con i binari (Release).
+  #------------------------------------------------------------------------------
+  build:
+    runs-on: windows-latest
+    # ► Facoltativo: se vuoi costruire anche sui tag, elimina tutto l’“if”
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v'))
+    steps:
+      - name: Checkout del repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installazione .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'    # SDK 9 (compatibile con .NET Framework 4.7.2)
+
+      - name: Restore dei pacchetti NuGet
+        run: dotnet restore CombineFiles.Core/CombineFiles.Core.csproj
+
+      - name: Build in Release
+        run: dotnet build CombineFiles.Core/CombineFiles.Core.csproj -c Release
+
+      - name: Pubblica artifact dei binari
+        uses: actions/upload-artifact@v4          # ← v4, non v3
+        with:
+          name: CombineFiles.Core-Binari
+          path: CombineFiles.Core/bin/Release/    # puoi togliere obj/
+
+  #------------------------------------------------------------------------------
+  # 2) Job di publish: si attiva solo quando viene creato un tag vX.Y.Z
+  #    Estrae la versione dal tag, esegue dotnet pack, genera .nupkg, carica artifact
+  #    e infine spinge il pacchetto su NuGet.org.
+  #------------------------------------------------------------------------------
+  publish:
+    runs-on: windows-latest
+    # ► togli “needs: build” per evitare lo skip quando build è saltato
+    # needs: build
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout del repository (inclusi i tag)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Installazione .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+      - name: Estrai versione dal tag
+        id: set_version
+        shell: pwsh                                # ← usa PowerShell
+        run: |
+          $version = $env:GITHUB_REF -replace 'refs/tags/v', ''
+          echo "VERSION=$version" >> $Env:GITHUB_ENV
+
+      - name: Pack (crea .nupkg)
+        shell: pwsh
+        run: |
+          dotnet pack CombineFiles.Core/CombineFiles.Core.csproj `
+            -c Release `
+            -o output `
+            /p:Version=$env:VERSION                # ← env:
+
+      - name: Pubblica artifact del pacchetto NuGet
+        uses: actions/upload-artifact@v4
+        with:
+          name: CombineFiles.Core-Pacchetto
+          path: output/*.nupkg
+
+      - name: Push su NuGet.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push output/*.nupkg `
+            --api-key $env:NUGET_API_KEY `         # ← env:
+            --source https://api.nuget.org/v3/index.json `
+            --skip-duplicate                      # (opzionale, ignora versioni già pubblicate)
