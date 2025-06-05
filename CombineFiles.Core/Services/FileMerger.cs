@@ -81,57 +81,97 @@ public sealed class FileMerger : IDisposable
     ///     <c>true</c> se il file è stato processato interamente;<br/>
     ///     <c>false</c> se ci si è fermati per superamento budget token (richiamante può interrompere il ciclo).
     /// </returns>
+    /// <summary>
+    /// Unisce (o elenca) il file <paramref name="filePath"/> nel flusso di output.
+    /// 
+    /// Comportamenti opzionali:
+    /// • Evita i duplicati (hash SHA‑256) se <paramref name="avoidDuplicatesByHash"/> è <c>true</c>.
+    /// • Limita le righe o rispetta il budget token se queste feature sono state abilitate
+    ///   tramite il costruttore.
+    /// </summary>
+    /// <returns>
+    /// <c>true</c> se si può proseguire con i file successivi; <c>false</c> se il
+    /// budget token è esaurito e va interrotto l’intero processo.
+    /// </returns>
     public bool MergeFile(string filePath, bool avoidDuplicatesByHash = true)
     {
-        try
+        if (string.IsNullOrWhiteSpace(filePath))
+            throw new ArgumentException("filePath cannot be null or empty.", nameof(filePath));
+
+        // 1. Evita duplicati (opzionale)
+        if (avoidDuplicatesByHash && IsDuplicate(filePath))
         {
-            if (avoidDuplicatesByHash && IsDuplicate(filePath))
-            {
-                _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
-                return true;
-            }
-
-            var relativePath = FileHelper.GetRelativePath(_baseDir, filePath);
-            WriteLine(_listOnlyFileNames
-                ? $"### {relativePath} ###"
-                : $"### Contenuto di {relativePath} ###");
-
-            if (_listOnlyFileNames)
-                return true;
-
-            int lineIdx = 0;
-            foreach (var line in File.ReadLines(filePath))
-            {
-                // 1. MaxLinesPerFile
-                if (_maxLinesPerFile > 0 && lineIdx >= _maxLinesPerFile)
-                    break;
-
-                // 2. Budget token (se usato)
-                if (_tokenBudgetCallback is not null)
-                {
-                    int tokensInLine = CountTokens(line);
-                    if (!_tokenBudgetCallback(tokensInLine))
-                    {
-                        _logger.WriteLog("Budget token esaurito: interrompo il merge.", LogLevel.INFO);
-                        return false; // interrompe l'intero processo
-                    }
-                }
-
-                WriteLine(line);
-                lineIdx++;
-            }
-
-            WriteLine(); // Riga vuota di separazione
+            LogSkipDuplicate(filePath);
             return true;
         }
-        catch (Exception ex)
-        {
-            var relativePath = FileHelper.GetRelativePath(_baseDir, filePath);
-            WriteLine($"[ERROR: impossibile leggere {relativePath} - {ex.Message}]");
-            _logger.WriteLog($"Impossibile leggere il file: {filePath} - {ex.Message}", LogLevel.WARNING);
+
+        // 2. Header – sempre visibile, anche con _listOnlyFileNames
+        var relativePath = FileHelper.GetRelativePath(_baseDir, filePath);
+        WriteHeader(relativePath);
+
+        // Modalità "list only": stampa solo il nome e termina.
+        if (_listOnlyFileNames)
             return true;
-        }
+
+        // 3. Corpo – eventualmente interrotto da budget token o maxLinesPerFile
+        bool continueProcessing = ProcessFileLines(filePath);
+
+        // 4. Riga vuota separatrice + flush esplicito (importante se il chiamante
+        //    dimentica di chiamare Dispose())
+        WriteLine();
+        Flush();
+
+        return continueProcessing;
     }
+
+    #region Helper privati
+
+    private void WriteHeader(string relativePath)
+        => WriteLine(_listOnlyFileNames ? $"### {relativePath} ###" : $"### Contenuto di {relativePath} ###");
+
+    private void LogSkipDuplicate(string filePath)
+        => _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
+
+    private bool ProcessFileLines(string filePath)
+    {
+        int lineIdx = 0;
+        foreach (var line in File.ReadLines(filePath))
+        {
+            // a) limite righe per file (opz.)
+            if (ExceededMaxLines(lineIdx))
+                break;
+
+            // b) budget token (opz.)
+            if (TokenBudgetExceeded(line))
+                return false; // interrompe l’intero merge
+
+            WriteLine(line);
+            lineIdx++;
+        }
+
+        return true; // ok, si può continuare con i file successivi
+    }
+
+    private bool ExceededMaxLines(int lineIdx)
+        => _maxLinesPerFile > 0 && lineIdx >= _maxLinesPerFile;
+
+    private bool TokenBudgetExceeded(string line)
+    {
+        if (_tokenBudgetCallback is null)
+            return false;
+
+        int tokens = CountTokens(line);
+        bool allowed = _tokenBudgetCallback(tokens);
+        if (!allowed)
+            _logger.WriteLog("Budget token esaurito: interrompo il merge.", LogLevel.INFO);
+
+        return !allowed;
+    }
+
+    /// <summary>Flush esplicito: evita file troncati se il chiamante non chiama Dispose().</summary>
+    private void Flush() => _writer?.Flush();
+
+    #endregion
 
     /// <summary>Conta i “token” in maniera approssimativa come numero di parole.</summary>
     private static int CountTokens(string line)

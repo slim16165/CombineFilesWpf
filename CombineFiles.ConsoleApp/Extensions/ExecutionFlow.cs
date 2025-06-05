@@ -170,7 +170,8 @@ public static class ExecutionFlow
             logger,
             options.OutputToConsole,
             options.OutputFile,
-            options.ListOnlyFileNames
+            options.ListOnlyFileNames,
+            options.MaxLinesPerFile
         );
 
         // Utilizziamo la progress bar di Spectre.Console
