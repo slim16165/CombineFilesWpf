@@ -1,0 +1,49 @@
+name: Publish CombineFiles.Core (net472) to NuGet
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'           # es. v1.2.1 → avvia il workflow
+  workflow_dispatch:       # avvio manuale opzionale
+
+jobs:
+  publish:
+    runs-on: windows-latest   # necessario per MSBuild/net472
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # serve se in futuro usi SourceLink o tag
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: msbuild CombineFiles.Core/CombineFiles.Core.csproj /t:Restore
+
+      - name: Create output directory
+        run: mkdir output
+
+      - name: Pack CombineFiles.Core with version from tag
+        shell: pwsh
+        run: |
+          # Estrai la versione dal tag (rimuovendo la 'v' iniziale)
+          $version = "${{ github.ref_name }}" -replace '^v',''
+          
+          # Compila e impacchetta (Pack) il solo progetto net472
+          msbuild CombineFiles.Core/CombineFiles.Core.csproj `
+            /t:Pack `
+            /p:Configuration=Release `
+            /p:PackageOutputPath=output `
+            /p:Version=$version
+
+      - name: Push to NuGet
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          # Invia tutti i .nupkg prodotti nella cartella output a NuGet.org
+          dotnet nuget push output\*.nupkg `
+            --api-key $env:NUGET_API_KEY `
+            --source https://api.nuget.org/v3/index.json
