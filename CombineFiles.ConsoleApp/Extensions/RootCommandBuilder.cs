@@ -72,7 +72,7 @@ public static class RootCommandBuilder
 
         var partialFileModeOption = OptionBuilder.For<string>("Partial-file-mode")
             .WithDescription("Strategia per file che superano il limite token: 'exclude' (default) o 'partial'")
-            .WithDefaultValue("exclude")
+            .WithDefaultValue("partial")
             .Build();
 
         var debugOption = OptionBuilder.For<bool>("Debug")
@@ -107,12 +107,6 @@ public static class RootCommandBuilder
                 if (options.Interactive)
                 {
                     options = InteractiveMode.Run();
-                }
-
-                if (options.Debug && !Debugger.IsAttached)
-                {
-                    Debugger.Launch();
-                    //Debugger.Break();
                 }
 
                 ExecutionFlow.Execute(options);

@@ -25,11 +25,6 @@ public static class ExecutionFlow
     /// </summary>
     public static void Execute(CombineFilesOptions options)
     {
-        if (options.Debug && !Debugger.IsAttached)
-        {
-            Debugger.Launch();
-            Debugger.Break();
-        }
         if (HandleHelpAndPresets(options)) return;
         if (!ApplyPresetSafely(options)) return;
 

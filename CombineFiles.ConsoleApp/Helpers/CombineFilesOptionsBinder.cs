@@ -22,7 +22,6 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
     private readonly Option<bool> _interactiveOption;
     private readonly Option<int> _maxTokensOption;
     private readonly Option<string> _partialFileModeOption;
-    private readonly Option<bool> _debugOption;
 
     public CombineFilesOptionsBinder(Option<bool> helpOption,
         Option<bool> listPresetsOption,
@@ -52,13 +51,12 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         _interactiveOption = interactiveOption;
         _maxTokensOption = maxTokensOption;
         _partialFileModeOption = partialFileModeOption;
-        _debugOption = debugOption;
     }
 
     protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
     {
         // Conversione della stringa PartialFileMode in enum TokenLimitStrategy
-        string partialFileModeStr = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "exclude";
+        string partialFileModeStr = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "partial";
         TokenLimitStrategy partialFileModeEnum = partialFileModeStr.Trim().ToLowerInvariant() == "partial"
             ? TokenLimitStrategy.IncludePartial
             : TokenLimitStrategy.ExcludeCompletely;
@@ -78,7 +76,6 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
             Interactive = bindingContext.ParseResult.GetValueForOption(_interactiveOption),
             MaxTotalTokens = bindingContext.ParseResult.GetValueForOption(_maxTokensOption),
             PartialFileMode = partialFileModeEnum,
-            Debug = bindingContext.ParseResult.GetValueForOption(_debugOption)
         };
     }
 }
