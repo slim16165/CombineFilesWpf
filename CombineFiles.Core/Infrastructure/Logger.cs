@@ -67,9 +67,10 @@ namespace CombineFiles.Core.Infrastructure
                 }
             }
 
-            // Visualizzazione a console con colore scelto tramite Lev2Color
+            // Escape parentesi quadre per Spectre.Console
+            string safeMessage = message.Replace("[", "[[").Replace("]", "]]");
             string color = Lev2Color(logLevel);
-            AnsiConsole.MarkupLine($"[{color}]{message}[/]");
+            AnsiConsole.MarkupLine($"[{color}]{safeMessage}[/]");
         }
 
         /// <summary>

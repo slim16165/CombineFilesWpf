@@ -14,7 +14,7 @@ namespace CombineFiles.Core.Services;
 public enum TokenLimitStrategy
 {
     /// <summary>Esclude completamente i file che superano il limite.</summary>
-    ExcludeComplete,
+    ExcludeCompletely,
 
     /// <summary>Include parzialmente i file fino al limite.</summary>
     IncludePartial
@@ -71,7 +71,7 @@ public sealed class FileMerger : IDisposable
     /// </param>
     /// <param name="tokenLimitStrategy">
     ///     Strategia da utilizzare quando si raggiunge il limite di token:<br/>
-    ///     • <see cref="TokenLimitStrategy.ExcludeComplete"/> → esclude completamente i file successivi (comportamento legacy)<br/>
+    ///     • <see cref="TokenLimitStrategy.ExcludeCompletely"/> → esclude completamente i file successivi (comportamento legacy)<br/>
     ///     • <see cref="TokenLimitStrategy.IncludePartial"/> → include parzialmente i file fino al limite
     /// </param>
     public FileMerger(
@@ -81,7 +81,7 @@ public sealed class FileMerger : IDisposable
         bool listOnlyFileNames,
         int maxLinesPerFile = 0,
         Func<int, bool>? tokenBudgetCallback = null,
-        TokenLimitStrategy tokenLimitStrategy = TokenLimitStrategy.ExcludeComplete)
+        TokenLimitStrategy tokenLimitStrategy = TokenLimitStrategy.IncludePartial)
     {
         _logger = logger;
         _outputToConsole = outputToConsole;
@@ -120,7 +120,7 @@ public sealed class FileMerger : IDisposable
     /// </summary>
     /// <returns>
     /// <c>true</c> se si può proseguire con i file successivi; <c>false</c> se il
-    /// budget token è esaurito e la strategia è <see cref="TokenLimitStrategy.ExcludeComplete"/>.
+    /// budget token è esaurito e la strategia è <see cref="TokenLimitStrategy.ExcludeCompletely"/>.
     /// </returns>
     public bool MergeFile(string filePath, bool avoidDuplicatesByHash = true)
     {
@@ -128,7 +128,7 @@ public sealed class FileMerger : IDisposable
             throw new ArgumentException("filePath cannot be null or empty.", nameof(filePath));
 
         // Se il budget è globalmente esaurito e la strategia è ExcludeComplete, non processare più nulla
-        if (_globalTokenBudgetExhausted && _tokenLimitStrategy == TokenLimitStrategy.ExcludeComplete)
+        if (_globalTokenBudgetExhausted && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely)
         {
             _logger.WriteLog($"Budget token esaurito globalmente, file ignorato: {filePath}", LogLevel.DEBUG);
             return false;
@@ -329,7 +329,7 @@ public sealed class FileMerger : IDisposable
     /// </summary>
     private bool DetermineContinuation(FileTruncationInfo info)
     {
-        if (_tokenLimitStrategy == TokenLimitStrategy.ExcludeComplete && _globalTokenBudgetExhausted)
+        if (_tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely && _globalTokenBudgetExhausted)
         {
             return false; // Stop processing altri file
         }

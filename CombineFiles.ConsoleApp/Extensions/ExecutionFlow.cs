@@ -30,7 +30,6 @@ public static class ExecutionFlow
             Debugger.Launch();
             Debugger.Break();
         }
-
         if (HandleHelpAndPresets(options)) return;
         if (!ApplyPresetSafely(options)) return;
 
@@ -98,7 +97,6 @@ public static class ExecutionFlow
             enabled: options.EnableLog,
             minimumLogLevel: LogLevel.INFO
         );
-        logger.WriteLog("Inizio operazione di combinazione file.", LogLevel.INFO);
         return logger;
     }
 
@@ -173,14 +171,9 @@ public static class ExecutionFlow
 
     private static void MergeFiles(List<string> filesToProcess, CombineFilesOptions options, Logger logger)
     {
-        // Passa la modalità partial/exclude a FileMerger
-        var strategy = options.PartialFileMode?.ToLowerInvariant() == "partial"
-            ? TokenLimitStrategy.IncludePartial
-            : TokenLimitStrategy.ExcludeComplete;
-
         // Token budget callback per la modalità partial
         Func<int, bool> tokenBudgetCallback = null;
-        if (options.MaxTotalTokens > 0 && strategy == TokenLimitStrategy.IncludePartial)
+        if (options.MaxTotalTokens > 0 && options.PartialFileMode == TokenLimitStrategy.IncludePartial)
         {
             int globalTokenBudget = options.MaxTotalTokens;
             int tokensUsed = 0;
@@ -203,8 +196,8 @@ public static class ExecutionFlow
             options.OutputFile,
             options.ListOnlyFileNames,
             options.MaxLinesPerFile,
-            tokenBudgetCallback, // ora passa il callback
-            strategy
+            tokenBudgetCallback,
+            options.PartialFileMode
         );
 
         // Utilizziamo la progress bar di Spectre.Console

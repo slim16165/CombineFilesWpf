@@ -37,7 +37,6 @@ public enum FilePriorityStrategy
     Extension,          // Raggruppa per estensione
     Alphabetical        // Ordine alfabetico
 }
-
 public class FileCollector
 {
     private readonly Logger _logger;
@@ -146,7 +145,8 @@ public class FileCollector
         bool recurse,
         int? maxTokens,
         FilePriorityStrategy priorityStrategy = FilePriorityStrategy.SizeAscending,
-        List<string> priorityFiles = null)
+        List<string> priorityFiles = null,
+        TokenLimitStrategy tokenLimitStrategy = TokenLimitStrategy.IncludePartial)
     {
         var allFiles = new List<CollectedFileInfo>();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -155,7 +155,7 @@ public class FileCollector
         CollectAllFiles(startPath, recurse, allFiles, visited);
 
         // Poi applica la strategia di selezione con il limite token
-        return SelectFilesWithinTokenLimit(allFiles, maxTokens, priorityStrategy, priorityFiles);
+        return SelectFilesWithinTokenLimit(allFiles, maxTokens, priorityStrategy, priorityFiles, tokenLimitStrategy);
     }
 
     private void CollectAllFiles(string currentPath, bool recurse, List<CollectedFileInfo> allFiles, HashSet<string> visited)
@@ -230,84 +230,64 @@ public class FileCollector
     }
 
     private FileCollectionResult SelectFilesWithinTokenLimit(
-        List<CollectedFileInfo> allFiles,
-        int? maxTokens,
-        FilePriorityStrategy priorityStrategy,
-        List<string> priorityFiles)
+    List<CollectedFileInfo> allFiles,
+    int? maxTokens,
+    FilePriorityStrategy priorityStrategy,
+    List<string>? priorityFiles,
+    TokenLimitStrategy tokenLimitStrategy)
     {
         var result = new FileCollectionResult { MaxTokens = maxTokens ?? 0 };
 
-        if (!maxTokens.HasValue)
+        // Caso 0: nessun limite -> restituisco subito, NIENTE log sui token
+        if (!maxTokens.HasValue || maxTokens.Value <= 0)
         {
             result.IncludedFiles = allFiles;
             result.TotalTokens = allFiles.Sum(f => f.EstimatedTokens + EstimateOutputOverhead(f));
             return result;
         }
 
-        // Separa i file prioritari se specificati
-        var priorityFileSet = new HashSet<string>(priorityFiles ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
-        var highPriorityFiles = new List<CollectedFileInfo>();
-        var normalFiles = new List<CollectedFileInfo>();
+        string modeLabel = tokenLimitStrategy == TokenLimitStrategy.IncludePartial
+            ? "IncludePartial"
+            : "ExcludeCompletely";
 
-        foreach (var file in allFiles)
+        // Caso 1: IncludePartial => si ignorano i limiti, ma facciamo comunque il conto
+        if (tokenLimitStrategy == TokenLimitStrategy.IncludePartial)
         {
-            if (priorityFileSet.Contains(file.Path))
-                highPriorityFiles.Add(file);
-            else
-                normalFiles.Add(file);
+            result.IncludedFiles = allFiles;
+            result.TotalTokens = allFiles.Sum(f => f.EstimatedTokens + EstimateOutputOverhead(f));
         }
-
-        // Ordina i file normali secondo la strategia
-        var sortedFiles = SortFilesByStrategy(normalFiles, priorityStrategy);
-
-        // Prima aggiungi i file prioritari
-        foreach (var file in highPriorityFiles)
+        else
         {
-            int totalTokensWithFile = result.TotalTokens + file.EstimatedTokens + EstimateOutputOverhead(file);
+            // --- Caso 2: ExcludeCompletely con priorità + ordinamento -----------------
+            var prioritySet = new HashSet<string>(priorityFiles ?? [], StringComparer.OrdinalIgnoreCase);
+            var highPriority = new List<CollectedFileInfo>();
+            var normalFiles = new List<CollectedFileInfo>();
 
-            if (totalTokensWithFile <= maxTokens.Value)
-            {
-                result.IncludedFiles.Add(file);
-                result.TotalTokens = totalTokensWithFile;
-            }
-            else
-            {
-                result.ExcludedFiles.Add(file);
-                _logger.WriteLog(
-                    $"File prioritario escluso per limite token: {ToRelativePath(file.Path)} ({file.EstimatedTokens} token)",
-                    LogLevel.WARNING);
-            }
-        }
+            foreach (var f in allFiles)
+                (prioritySet.Contains(f.Path) ? highPriority : normalFiles).Add(f);
 
-        // Poi aggiungi i file normali
-        foreach (var file in sortedFiles)
-        {
-            int totalTokensWithFile = result.TotalTokens + file.EstimatedTokens + EstimateOutputOverhead(file);
-
-            if (totalTokensWithFile <= maxTokens.Value)
+            foreach (var f in highPriority.Concat(SortFilesByStrategy(normalFiles, priorityStrategy)))
             {
-                result.IncludedFiles.Add(file);
-                result.TotalTokens = totalTokensWithFile;
-            }
-            else
-            {
-                result.ExcludedFiles.Add(file);
+                int nextTotal = result.TotalTokens + f.EstimatedTokens + EstimateOutputOverhead(f);
+                if (nextTotal <= maxTokens.Value)
+                {
+                    result.IncludedFiles.Add(f);
+                    result.TotalTokens = nextTotal;
+                }
+                else
+                {
+                    result.ExcludedFiles.Add(f);
+                }
             }
         }
 
-        // Log del risultato
+        // -------- LOG riepilogativo UNICO ------------------------------------------
         _logger.WriteLog(
-            $"Raccolta file completata: {result.IncludedFiles.Count} inclusi ({result.TotalTokens} token), " +
-            $"{result.ExcludedFiles.Count} esclusi per limite token",
+            $"Token selection [{modeLabel}]: " +
+            $"{result.IncludedFiles.Count} inclusi, {result.ExcludedFiles.Count} esclusi – " +
+            $"{result.TotalTokens}/{maxTokens.Value} token " +
+            $"{(tokenLimitStrategy == TokenLimitStrategy.IncludePartial && result.TotalTokens > maxTokens ? "(limite superato)" : "")}",
             LogLevel.INFO);
-
-        if (result.ExcludedFiles.Count > 0)
-        {
-            _logger.WriteLog(
-                $"Spazio token utilizzato: {result.TotalTokens}/{maxTokens.Value} " +
-                $"({(result.TotalTokens * 100.0 / maxTokens.Value):F1}%)",
-                LogLevel.INFO);
-        }
 
         return result;
     }
@@ -492,9 +472,9 @@ public class FileCollector
     /// <summary>
     /// Applica il limite token a una lista di CollectedFileInfo già filtrata e restituisce solo i path inclusi.
     /// </summary>
-    public List<string> ApplyTokenLimitToFilteredFiles(List<CollectedFileInfo> filteredFiles, int maxTokens, FilePriorityStrategy priorityStrategy = FilePriorityStrategy.SizeAscending)
+    public List<string> ApplyTokenLimitToFilteredFiles(List<CollectedFileInfo> filteredFiles, int maxTokens, FilePriorityStrategy priorityStrategy, TokenLimitStrategy tokenLimitStrategy)
     {
-        var result = SelectFilesWithinTokenLimit(filteredFiles, maxTokens, priorityStrategy, null);
+        var result = SelectFilesWithinTokenLimit(filteredFiles, maxTokens, priorityStrategy, null, tokenLimitStrategy);
         return result.IncludedFiles.Select(f => f.Path).ToList();
     }
 }

@@ -1,7 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Binding;
+using System.CommandLine.Parsing;
 using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Services;
 
 namespace CombineFiles.ConsoleApp.Helpers;
 
@@ -55,6 +57,12 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
 
     protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
     {
+        // Conversione della stringa PartialFileMode in enum TokenLimitStrategy
+        string partialFileModeStr = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "exclude";
+        TokenLimitStrategy partialFileModeEnum = partialFileModeStr.Trim().ToLowerInvariant() == "partial"
+            ? TokenLimitStrategy.IncludePartial
+            : TokenLimitStrategy.ExcludeCompletely;
+
         return new CombineFilesOptions
         {
             Help = bindingContext.ParseResult.GetValueForOption(_helpOption),
@@ -69,7 +77,7 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
             EnableLog = bindingContext.ParseResult.GetValueForOption(_enableLogOption),
             Interactive = bindingContext.ParseResult.GetValueForOption(_interactiveOption),
             MaxTotalTokens = bindingContext.ParseResult.GetValueForOption(_maxTokensOption),
-            PartialFileMode = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "partial",
+            PartialFileMode = partialFileModeEnum,
             Debug = bindingContext.ParseResult.GetValueForOption(_debugOption)
         };
     }

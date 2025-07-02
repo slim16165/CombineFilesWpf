@@ -97,16 +97,13 @@ public static class FileCollectionHelper
             .Where(filterPredicate)
             .ToList();
 
-        //while (!Debugger.IsAttached) Thread.Sleep(100);
-        //Debugger.Break();
-
         logger.WriteLog($"File trovati dopo filtro {filterType}: {filtered.Count}", LogLevel.INFO);
 
         // 3. Applica limite token SUI FILE FILTRATI
         if (options.MaxTotalTokens > 0)
         {
-            // Applica il limite di token sui file già filtrati
-            var result = collector.ApplyTokenLimitToFilteredFiles(filtered, options.MaxTotalTokens, FilePriorityStrategy.SizeAscending);
+            // Passa la strategia partial/exclude
+            var result = collector.ApplyTokenLimitToFilteredFiles(filtered, options.MaxTotalTokens, FilePriorityStrategy.SizeAscending, options.PartialFileMode);
             logger.WriteLog($"Nota: la modalità partial/exclude (PartialFileMode) viene applicata solo durante il merge, non in questa fase di raccolta file.", LogLevel.DEBUG);
             return result;
         }

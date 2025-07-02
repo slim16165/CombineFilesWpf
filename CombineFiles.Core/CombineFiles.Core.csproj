@@ -30,6 +30,9 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="CombinedFile.cs" />
+	</ItemGroup>
 
 	<!-- 7) Rimuovi dipendenze CLI/UI non necessarie in Core; mantieni solo quelle strettamente logiche -->
 	<ItemGroup>

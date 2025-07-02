@@ -109,6 +109,12 @@ public static class RootCommandBuilder
                     options = InteractiveMode.Run();
                 }
 
+                if (options.Debug && !Debugger.IsAttached)
+                {
+                    Debugger.Launch();
+                    //Debugger.Break();
+                }
+
                 ExecutionFlow.Execute(options);
             },
             new CombineFilesOptionsBinder(
