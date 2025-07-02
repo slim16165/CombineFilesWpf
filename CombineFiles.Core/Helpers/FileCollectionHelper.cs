@@ -1,11 +1,13 @@
-﻿using System;
+﻿using CombineFiles.Core.Configuration;
+using CombineFiles.Core.Infrastructure;
+using CombineFiles.Core.Services;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using CombineFiles.Core.Configuration;
-using CombineFiles.Core.Infrastructure;
-using CombineFiles.Core.Services;
+using System.Threading;
 
 namespace CombineFiles.Core.Helpers;
 
@@ -95,13 +97,18 @@ public static class FileCollectionHelper
             .Where(filterPredicate)
             .ToList();
 
+        //while (!Debugger.IsAttached) Thread.Sleep(100);
+        //Debugger.Break();
+
         logger.WriteLog($"File trovati dopo filtro {filterType}: {filtered.Count}", LogLevel.INFO);
 
         // 3. Applica limite token SUI FILE FILTRATI
         if (options.MaxTotalTokens > 0)
         {
             // Applica il limite di token sui file già filtrati
-            return collector.ApplyTokenLimitToFilteredFiles(filtered, options.MaxTotalTokens, FilePriorityStrategy.SizeAscending);
+            var result = collector.ApplyTokenLimitToFilteredFiles(filtered, options.MaxTotalTokens, FilePriorityStrategy.SizeAscending);
+            logger.WriteLog($"Nota: la modalità partial/exclude (PartialFileMode) viene applicata solo durante il merge, non in questa fase di raccolta file.", LogLevel.DEBUG);
+            return result;
         }
 
         return filtered.Select(f => f.Path).ToList();

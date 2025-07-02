@@ -24,7 +24,7 @@ public class CombineFilesOptions
     public string MaxSize { get; set; }
     public int MaxLinesPerFile { get; set; }      // 0 = senza limite di righe
     public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
-    public string PartialFileMode { get; set; } = "exclude"; // "exclude" (default) oppure "partial"
+    public string PartialFileMode { get; set; } = "partial"; // "exclude" oppure "partial"
 
     //starts full‑screen interactive wizard
     public bool Interactive { get; set; }
