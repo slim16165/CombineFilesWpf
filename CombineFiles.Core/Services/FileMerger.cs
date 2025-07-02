@@ -134,6 +134,7 @@ public sealed class FileMerger : IDisposable
 
     private bool ProcessFileLines(string filePath)
     {
+        filePath = FileHelper.NormalizeLongPath(filePath);
         int lineIdx = 0;
         foreach (var line in File.ReadLines(filePath))
         {
@@ -185,6 +186,7 @@ public sealed class FileMerger : IDisposable
     /// <summary>Calcola lo SHA-256 del file per evitare duplicati.</summary>
     private bool IsDuplicate(string filePath)
     {
+        filePath = FileHelper.NormalizeLongPath(filePath);
         try
         {
             using var stream = File.OpenRead(filePath);

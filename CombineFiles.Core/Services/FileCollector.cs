@@ -104,11 +104,13 @@ public class FileCollector
     /// </summary>
     public List<string> GetAllFiles(string startPath, bool recurse)
     {
+        // NON normalizzare con long path qui: le API directory .NET 4.7.2 non supportano \\?\
         var result = new List<string>();
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         void RecursiveGetFiles(string currentPath)
         {
+            // NON normalizzare con long path qui
             if (!visited.Add(currentPath))
                 return;
 
@@ -128,6 +130,7 @@ public class FileCollector
 
             foreach (var item in items)
             {
+                // NON normalizzare con long path qui
                 if (IsPathExcluded(item))
                 {
                     // Log di debug. I dettagli li scrivo a livello debug.
@@ -154,10 +157,8 @@ public class FileCollector
                 }
                 else
                 {
-                    // Se vuoi, puoi mostrare a schermo i file inclusi,
-                    // ma anche questo può essere spostato su DEBUG.
-                    // _logger.WriteLog($"File incluso: {ToRelativePath(item)}", LogLevel.DEBUG);
-                    result.Add(item);
+                    // Solo qui, se il path è lungo, normalizza per file
+                    result.Add(FileHelper.NormalizeLongPath(item));
                 }
             }
         }
@@ -171,8 +172,10 @@ public class FileCollector
     /// </summary>
     public List<string> StartInteractiveSelection(List<string> initialFiles, string sourcePath)
     {
+        // NON normalizzare sourcePath qui
         var relativePaths = initialFiles.Select(file =>
         {
+            // Normalizza solo se serve per file
             try
             {
                 return FileHelper.GetRelativePath(sourcePath, file);
@@ -184,6 +187,7 @@ public class FileCollector
         }).ToList();
 
         string tempFilePath = Path.Combine(Path.GetTempPath(), "CombineFiles_InteractiveSelection.txt");
+        // NON normalizzare tempFilePath qui
         try
         {
             File.WriteAllLines(tempFilePath, (IEnumerable<string>)relativePaths, Encoding.UTF8);
@@ -229,9 +233,10 @@ public class FileCollector
         foreach (var rel in updatedRelativePaths)
         {
             string absPath = Path.Combine(sourcePath, rel);
+            // Normalizza solo se serve per file
             if (File.Exists(absPath))
             {
-                updatedFiles.Add(absPath);
+                updatedFiles.Add(FileHelper.NormalizeLongPath(absPath));
             }
             else
             {

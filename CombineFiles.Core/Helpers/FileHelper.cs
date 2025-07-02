@@ -43,10 +43,34 @@ public static class FileHelper
     /// </summary>
     public static string GetRelativePath(string basePath, string targetPath)
     {
+        // Se uno dei path contiene il prefisso long path, restituisci il targetPath senza usare Uri
+        if ((basePath != null && basePath.StartsWith(@"\\?\")) ||
+            (targetPath != null && targetPath.StartsWith(@"\\?\")))
+        {
+            return targetPath;
+        }
         Uri baseUri = new Uri(basePath.EndsWith(Path.DirectorySeparatorChar.ToString()) ? basePath : basePath + Path.DirectorySeparatorChar);
         Uri targetUri = new Uri(targetPath);
 
         return Uri.UnescapeDataString(baseUri.MakeRelativeUri(targetUri)
             .ToString().Replace('/', Path.DirectorySeparatorChar));
+    }
+
+    /// <summary>
+    /// Normalizza un percorso per supportare i long path su Windows (aggiunge \\?\ se necessario).
+    /// </summary>
+    public static string NormalizeLongPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return path;
+        // Solo per Windows, path assoluti, non già con prefisso, e più lunghi di 260
+        if (Environment.OSVersion.Platform == PlatformID.Win32NT &&
+            Path.IsPathRooted(path) &&
+            !path.StartsWith(@"\\?\") &&
+            path.Length >= 260)
+        {
+            return @"\\?\" + path;
+        }
+        return path;
     }
 }
