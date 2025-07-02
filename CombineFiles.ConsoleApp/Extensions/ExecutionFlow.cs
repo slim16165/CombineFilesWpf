@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -24,6 +25,12 @@ public static class ExecutionFlow
     /// </summary>
     public static void Execute(CombineFilesOptions options)
     {
+        if (options.Debug && !Debugger.IsAttached)
+        {
+            Debugger.Launch();
+            Debugger.Break();
+        }
+
         if (HandleHelpAndPresets(options)) return;
         if (!ApplyPresetSafely(options)) return;
 
@@ -170,13 +177,33 @@ public static class ExecutionFlow
         var strategy = options.PartialFileMode?.ToLowerInvariant() == "partial"
             ? TokenLimitStrategy.IncludePartial
             : TokenLimitStrategy.ExcludeComplete;
+
+        // Token budget callback per la modalità partial
+        Func<int, bool> tokenBudgetCallback = null;
+        if (options.MaxTotalTokens > 0 && strategy == TokenLimitStrategy.IncludePartial)
+        {
+            int globalTokenBudget = options.MaxTotalTokens;
+            int tokensUsed = 0;
+            object lockObj = new object();
+            tokenBudgetCallback = (tokensForLine) =>
+            {
+                lock (lockObj)
+                {
+                    if (tokensUsed + tokensForLine > globalTokenBudget)
+                        return false;
+                    tokensUsed += tokensForLine;
+                    return true;
+                }
+            };
+        }
+
         var fileMerger = new FileMerger(
             logger,
             options.OutputToConsole,
             options.OutputFile,
             options.ListOnlyFileNames,
             options.MaxLinesPerFile,
-            null, // il tokenBudgetCallback sarà gestito internamente in FileMerger
+            tokenBudgetCallback, // ora passa il callback
             strategy
         );
 

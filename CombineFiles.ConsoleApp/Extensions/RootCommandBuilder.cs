@@ -75,6 +75,14 @@ public static class RootCommandBuilder
             .WithDefaultValue("exclude")
             .Build();
 
+        var debugOption = OptionBuilder.For<bool>("Debug")
+            .WithDescription("Abilita la modalità di debug dettagliata")
+            .WithShortAlias("d")
+            .Build();
+
+        //while (!Debugger.IsAttached) Thread.Sleep(100);
+        //Debugger.Break();
+
         // Aggiunta delle opzioni al comando radice
         rootCommand.AddOption(helpOption);
         rootCommand.AddOption(listPresetsOption);
@@ -89,6 +97,7 @@ public static class RootCommandBuilder
         rootCommand.AddOption(interactiveOpt);
         rootCommand.AddOption(maxTokensOption);
         rootCommand.AddOption(partialFileModeOption);
+        rootCommand.AddOption(debugOption);
 
         // Imposta il gestore con un binder personalizzato
         rootCommand.SetHandler(
@@ -115,7 +124,8 @@ public static class RootCommandBuilder
                 enableLogOption,
                 interactiveOpt,
                 maxTokensOption,
-                partialFileModeOption));
+                partialFileModeOption,
+                debugOption));
 
         return rootCommand;
     }

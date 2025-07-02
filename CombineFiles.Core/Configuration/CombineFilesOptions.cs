@@ -26,6 +26,8 @@ public class CombineFilesOptions
     public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
     public string PartialFileMode { get; set; } = "partial"; // "exclude" oppure "partial"
 
+    public bool Debug { get; set; } // Abilita la modalità di debug dettagliata
+
     //starts full‑screen interactive wizard
     public bool Interactive { get; set; }
 
