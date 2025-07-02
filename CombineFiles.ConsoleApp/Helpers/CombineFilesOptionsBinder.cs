@@ -18,6 +18,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
     private readonly Option<bool> _recurseOption;
     private readonly Option<bool> _enableLogOption;
     private readonly Option<bool> _interactiveOption;
+    private readonly Option<int> _maxTokensOption;
+    private readonly Option<string> _partialFileModeOption;
 
     public CombineFilesOptionsBinder(Option<bool> helpOption,
         Option<bool> listPresetsOption,
@@ -29,7 +31,9 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         Option<string> outputFileOption,
         Option<bool> recurseOption,
         Option<bool> enableLogOption, 
-        Option<bool> interactiveOption)
+        Option<bool> interactiveOption,
+        Option<int> maxTokensOption,
+        Option<string> partialFileModeOption)
     {
         _helpOption = helpOption;
         _listPresetsOption = listPresetsOption;
@@ -42,6 +46,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         _recurseOption = recurseOption;
         _enableLogOption = enableLogOption;
         _interactiveOption = interactiveOption;
+        _maxTokensOption = maxTokensOption;
+        _partialFileModeOption = partialFileModeOption;
     }
 
     protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
@@ -59,7 +65,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
             Recurse = bindingContext.ParseResult.GetValueForOption(_recurseOption),
             EnableLog = bindingContext.ParseResult.GetValueForOption(_enableLogOption),
             Interactive = bindingContext.ParseResult.GetValueForOption(_interactiveOption),
-
+            MaxTotalTokens = bindingContext.ParseResult.GetValueForOption(_maxTokensOption),
+            PartialFileMode = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "exclude"
         };
     }
 }

@@ -12,7 +12,7 @@ namespace CombineFiles.Core.Helpers;
 public static class FileCollectionHelper
 {
     /// <summary>
-    /// Metodo “unico” che, in base a options.Mode, decide come ottenere la lista di file
+    /// Metodo "unico" che, in base a options.Mode, decide come ottenere la lista di file
     /// e applica filtraggio per dimensione (MinSize/MaxSize).
     /// </summary>
     public static List<string> CollectFiles(CombineFilesOptions options, Logger logger, FileCollector collector, string sourcePath)
@@ -26,23 +26,24 @@ public static class FileCollectionHelper
                 break;
 
             case "extensions":
-                filesToProcess = HandleExtensionsMode(options, logger, collector);
+                filesToProcess = HandleFilterMode(options, logger, collector,
+                    file => options.Extensions.Any(ext => file.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase)),
+                    "estensioni");
                 break;
 
             case "regex":
-                filesToProcess = HandleRegexMode(options, logger, collector);
+                filesToProcess = HandleFilterMode(options, logger, collector,
+                    file => options.RegexPatterns.Any(pattern => Regex.IsMatch(file.Path, pattern)),
+                    "regex");
                 break;
 
             case "interactiveselection":
-                // Ottieni prima i file per estensione
-                filesToProcess = HandleExtensionsMode(options, logger, collector);
-                // Poi avvia la selezione interattiva
-                filesToProcess = collector.StartInteractiveSelection(filesToProcess, sourcePath);
+                filesToProcess = HandleInteractiveMode(options, logger, collector, sourcePath);
                 break;
 
             default:
                 // Se non specificato, raccogli tutti i file
-                filesToProcess = collector.GetAllFiles(sourcePath, options.Recurse);
+                filesToProcess = GetAllFiles(collector, sourcePath, options);
                 break;
         }
 
@@ -77,50 +78,52 @@ public static class FileCollectionHelper
         return filesToProcess;
     }
 
-    private static List<string> HandleExtensionsMode(CombineFilesOptions options, Logger logger, FileCollector collector)
+    /// <summary>
+    /// Gestisce modalità con filtri (extensions e regex) eliminando la duplicazione di codice.
+    /// Il conteggio dei token viene fatto DOPO il filtraggio.
+    /// </summary>
+    private static List<string> HandleFilterMode(CombineFilesOptions options, Logger logger, FileCollector collector,
+        Func<CollectedFileInfo, bool> filterPredicate, string filterType)
     {
         var basePath = Directory.GetCurrentDirectory();
-        var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-        var matched = new List<string>();
 
-        foreach (var file in allFiles)
+        // 1. Raccogli tutti i file (senza limite token)
+        var allFiles = collector.GetAllFilesWithTokenInfo(basePath, options.Recurse, null);
+
+        // 2. Filtra per estensione/regex
+        var filtered = allFiles.IncludedFiles
+            .Where(filterPredicate)
+            .ToList();
+
+        logger.WriteLog($"File trovati dopo filtro {filterType}: {filtered.Count}", LogLevel.INFO);
+
+        // 3. Applica limite token SUI FILE FILTRATI
+        if (options.MaxTotalTokens > 0)
         {
-            foreach (var ext in options.Extensions)
-            {
-                if (file.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
-                {
-                    matched.Add(file);
-                    break;
-                }
-            }
+            // Applica il limite di token sui file già filtrati
+            return collector.ApplyTokenLimitToFilteredFiles(filtered, options.MaxTotalTokens, FilePriorityStrategy.SizeAscending);
         }
 
-        matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        logger.WriteLog($"File da processare dopo filtraggio per estensioni: {matched.Count}", LogLevel.INFO);
-        return matched;
+        return filtered.Select(f => f.Path).ToList();
     }
 
-    private static List<string> HandleRegexMode(CombineFilesOptions options, Logger logger, FileCollector collector)
+    /// <summary>
+    /// Gestisce la modalità interattiva raccogliendo tutti i file disponibili
+    /// </summary>
+    private static List<string> HandleInteractiveMode(CombineFilesOptions options, Logger logger, FileCollector collector, string sourcePath)
     {
-        var basePath = Directory.GetCurrentDirectory();
-        var allFiles = collector.GetAllFiles(basePath, options.Recurse);
-        var matched = new List<string>();
+        var allFiles = GetAllFiles(collector, sourcePath, options);
+        return collector.StartInteractiveSelection(allFiles, sourcePath);
+    }
 
-        foreach (var file in allFiles)
-        {
-            foreach (var pattern in options.RegexPatterns)
-            {
-                if (Regex.IsMatch(file, pattern))
-                {
-                    matched.Add(file);
-                    break; // Evita duplicati
-                }
-            }
-        }
-
-        matched = matched.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        logger.WriteLog($"File da processare (regex): {matched.Count}", LogLevel.INFO);
-        return matched;
+    /// <summary>
+    /// Metodo helper unificato per raccogliere tutti i file con gestione opzionale dei token
+    /// </summary>
+    private static List<string> GetAllFiles(FileCollector collector, string sourcePath, CombineFilesOptions options)
+    {
+        return options.MaxTotalTokens > 0
+            ? collector.GetAllFiles(sourcePath, options.Recurse, options.MaxTotalTokens)
+            : collector.GetAllFiles(sourcePath, options.Recurse);
     }
 
     /// <summary>
@@ -128,6 +131,37 @@ public static class FileCollectionHelper
     /// Logga a livello INFO quanti file sono stati rimossi per dimensione.
     /// </summary>
     private static List<string> FilterBySize(List<string> files, CombineFilesOptions options, Logger logger)
+    {
+        var (minBytes, maxBytes) = ParseSizeLimits(options, logger);
+
+        if (maxBytes <= 0 && minBytes <= 0)
+            return files;
+
+        var filtered = new List<string>();
+        int removedCount = 0;
+
+        foreach (var path in files)
+        {
+            if (!TryGetFileSize(path, out long length, logger))
+                continue;
+
+            if (IsFileSizeExcluded(length, minBytes, maxBytes, path, logger))
+            {
+                removedCount++;
+                continue;
+            }
+
+            filtered.Add(path);
+        }
+
+        logger.WriteLog($"Filtraggio dimensione: rimossi {removedCount} file, rimangono {filtered.Count}", LogLevel.INFO);
+        return filtered;
+    }
+
+    /// <summary>
+    /// Estrae e valida i limiti di dimensione dalle opzioni
+    /// </summary>
+    private static (long minBytes, long maxBytes) ParseSizeLimits(CombineFilesOptions options, Logger logger)
     {
         long maxBytes = 0;
         long minBytes = 0;
@@ -156,43 +190,44 @@ public static class FileCollectionHelper
             }
         }
 
-        if (maxBytes <= 0 && minBytes <= 0)
-            return files;
+        return (minBytes, maxBytes);
+    }
 
-        var filtered = new List<string>();
-        int removedCount = 0;
-
-        foreach (var path in files)
+    /// <summary>
+    /// Tenta di ottenere la dimensione del file gestendo eventuali errori
+    /// </summary>
+    private static bool TryGetFileSize(string path, out long length, Logger logger)
+    {
+        length = 0;
+        try
         {
-            long length;
-            try
-            {
-                length = new FileInfo(path).Length;
-            }
-            catch (Exception ex)
-            {
-                logger.WriteLog($"Impossibile leggere dimensione file '{path}': {ex.Message}", LogLevel.WARNING);
-                continue;
-            }
+            length = new System.IO.FileInfo(path).Length;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            logger.WriteLog($"Impossibile leggere dimensione file '{path}': {ex.Message}", LogLevel.WARNING);
+            return false;
+        }
+    }
 
-            if (maxBytes > 0 && length > maxBytes)
-            {
-                removedCount++;
-                logger.WriteLog($"Escludo per dimensione > MaxSize: {path} ({length} byte)", LogLevel.DEBUG);
-                continue;
-            }
-
-            if (minBytes > 0 && length < minBytes)
-            {
-                removedCount++;
-                logger.WriteLog($"Escludo per dimensione < MinSize: {path} ({length} byte)", LogLevel.DEBUG);
-                continue;
-            }
-
-            filtered.Add(path);
+    /// <summary>
+    /// Verifica se un file deve essere escluso in base alla sua dimensione
+    /// </summary>
+    private static bool IsFileSizeExcluded(long fileSize, long minBytes, long maxBytes, string path, Logger logger)
+    {
+        if (maxBytes > 0 && fileSize > maxBytes)
+        {
+            logger.WriteLog($"Escludo per dimensione > MaxSize: {path} ({fileSize} byte)", LogLevel.DEBUG);
+            return true;
         }
 
-        logger.WriteLog($"Filtraggio dimensione: rimossi {removedCount} file, rimangono {filtered.Count}", LogLevel.INFO);
-        return filtered;
+        if (minBytes > 0 && fileSize < minBytes)
+        {
+            logger.WriteLog($"Escludo per dimensione < MinSize: {path} ({fileSize} byte)", LogLevel.DEBUG);
+            return true;
+        }
+
+        return false;
     }
 }

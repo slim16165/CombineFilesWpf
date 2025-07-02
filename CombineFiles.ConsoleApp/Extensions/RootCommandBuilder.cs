@@ -65,6 +65,16 @@ public static class RootCommandBuilder
             .Build();
         var interactiveOpt = OptionBuilder.For<bool>("Interactive").WithDescription("Launch interactive configuration wizard").WithShortAlias("i").Build();
 
+        var maxTokensOption = OptionBuilder.For<int>("Max-tokens")
+            .WithDescription("Limite massimo di token da processare (0 = illimitato)")
+            .WithDefaultValue(0)
+            .Build();
+
+        var partialFileModeOption = OptionBuilder.For<string>("Partial-file-mode")
+            .WithDescription("Strategia per file che superano il limite token: 'exclude' (default) o 'partial'")
+            .WithDefaultValue("exclude")
+            .Build();
+
         // Aggiunta delle opzioni al comando radice
         rootCommand.AddOption(helpOption);
         rootCommand.AddOption(listPresetsOption);
@@ -77,6 +87,8 @@ public static class RootCommandBuilder
         rootCommand.AddOption(recurseOption);
         rootCommand.AddOption(enableLogOption);
         rootCommand.AddOption(interactiveOpt);
+        rootCommand.AddOption(maxTokensOption);
+        rootCommand.AddOption(partialFileModeOption);
 
         // Imposta il gestore con un binder personalizzato
         rootCommand.SetHandler(
@@ -101,7 +113,9 @@ public static class RootCommandBuilder
                 outputFileOption,
                 recurseOption,
                 enableLogOption,
-                interactiveOpt));
+                interactiveOpt,
+                maxTokensOption,
+                partialFileModeOption));
 
         return rootCommand;
     }

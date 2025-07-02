@@ -166,25 +166,27 @@ public static class ExecutionFlow
 
     private static void MergeFiles(List<string> filesToProcess, CombineFilesOptions options, Logger logger)
     {
+        // Passa la modalità partial/exclude a FileMerger
+        var strategy = options.PartialFileMode?.ToLowerInvariant() == "partial"
+            ? TokenLimitStrategy.IncludePartial
+            : TokenLimitStrategy.ExcludeComplete;
         var fileMerger = new FileMerger(
             logger,
             options.OutputToConsole,
             options.OutputFile,
             options.ListOnlyFileNames,
-            options.MaxLinesPerFile
+            options.MaxLinesPerFile,
+            null, // il tokenBudgetCallback sarà gestito internamente in FileMerger
+            strategy
         );
 
         // Utilizziamo la progress bar di Spectre.Console
         AnsiConsole.Progress()
             .Start(ctx =>
             {
-                // Creiamo un task di progressione con un valore massimo pari al numero totale di file
                 var progressTask = ctx.AddTask("[green]Merging files...[/]", maxValue: filesToProcess.Count);
-
-                // Elaboriamo ciascun file e aggiorniamo la barra
                 foreach (var file in filesToProcess)
                 {
-                    // Processa il singolo file: implementa la logica in MergeFile
                     fileMerger.MergeFile(file);
                     progressTask.Increment(1);
                 }
