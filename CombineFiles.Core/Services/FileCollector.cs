@@ -286,7 +286,7 @@ public class FileCollector
             $"Token selection [{modeLabel}]: " +
             $"{result.IncludedFiles.Count} inclusi, {result.ExcludedFiles.Count} esclusi – " +
             $"{result.TotalTokens}/{maxTokens.Value} token " +
-            $"{(tokenLimitStrategy == TokenLimitStrategy.IncludePartial && result.TotalTokens > maxTokens ? "(limite superato)" : "")}",
+            $"{(tokenLimitStrategy == TokenLimitStrategy.IncludePartial && result.TotalTokens > maxTokens ? "(limite superato se includo tutto)" : "")}",
             LogLevel.INFO);
 
         return result;

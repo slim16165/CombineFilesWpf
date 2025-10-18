@@ -57,9 +57,13 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
     {
         // Conversione della stringa PartialFileMode in enum TokenLimitStrategy
         string partialFileModeStr = bindingContext.ParseResult.GetValueForOption(_partialFileModeOption) ?? "partial";
-        TokenLimitStrategy partialFileModeEnum = partialFileModeStr.Trim().ToLowerInvariant() == "partial"
-            ? TokenLimitStrategy.IncludePartial
-            : TokenLimitStrategy.ExcludeCompletely;
+        TokenLimitStrategy partialFileModeEnum = partialFileModeStr.Trim().ToLowerInvariant() switch
+        {
+            "partial" => TokenLimitStrategy.IncludePartial,
+            "exclude" => TokenLimitStrategy.ExcludeCompletely,
+            "paginate" => TokenLimitStrategy.PaginateOutput, // nuova modalità
+            _ => TokenLimitStrategy.IncludePartial
+        };
 
         return new CombineFilesOptions
         {

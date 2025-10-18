@@ -166,43 +166,56 @@ public static class ExecutionFlow
 
     private static void MergeFiles(List<string> filesToProcess, CombineFilesOptions options, Logger logger)
     {
-        // Token budget callback per la modalità partial
-        Func<int, bool> tokenBudgetCallback = null;
-        if (options.MaxTotalTokens > 0 && options.PartialFileMode == TokenLimitStrategy.IncludePartial)
-        {
-            int globalTokenBudget = options.MaxTotalTokens;
-            int tokensUsed = 0;
-            object lockObj = new object();
-            tokenBudgetCallback = (tokensForLine) =>
-            {
-                lock (lockObj)
-                {
-                    if (tokensUsed + tokensForLine > globalTokenBudget)
-                        return false;
-                    tokensUsed += tokensForLine;
-                    return true;
-                }
-            };
-        }
+        // Ottieni info dettagliate sui file (token stimati)
+        var fileCollector = new FileCollector(
+            logger,
+            options.ExcludePaths,
+            options.ExcludeFiles,
+            options.ExcludeFilePatterns
+        );
+        var fileInfos = filesToProcess
+            .Select(f => new { Path = f, Info = GetFileInfoSafe(fileCollector, f) })
+            .Where(x => x.Info != null)
+            .Select(x => x.Info)
+            .OrderBy(f => f.EstimatedTokens) // puoi cambiare strategia qui
+            .ToList();
 
+        int budget = options.MaxTotalTokens > 0 ? options.MaxTotalTokens : int.MaxValue;
         var fileMerger = new FileMerger(
             logger,
             options.OutputToConsole,
             options.OutputFile,
             options.ListOnlyFileNames,
             options.MaxLinesPerFile,
-            tokenBudgetCallback,
-            options.PartialFileMode
+            options.PartialFileMode,
+            0 // default, usiamo overload con limite per-file
         );
 
-        // Utilizziamo la progress bar di Spectre.Console
         AnsiConsole.Progress()
             .Start(ctx =>
             {
-                var progressTask = ctx.AddTask("[green]Merging files...[/]", maxValue: filesToProcess.Count);
-                foreach (var file in filesToProcess)
+                var progressTask = ctx.AddTask("[green]Merging files...[/]", maxValue: fileInfos.Count);
+                foreach (var file in fileInfos)
                 {
-                    fileMerger.MergeFile(file);
+                    if (budget <= 0)
+                        break;
+                    int tokensForThisFile = file.EstimatedTokens;
+                    if (tokensForThisFile <= budget)
+                    {
+                        fileMerger.MergeFile(file.Path);
+                        budget -= tokensForThisFile;
+                    }
+                    else
+                    {
+                        // Tronca solo questo file
+                        if (options.PartialFileMode == TokenLimitStrategy.IncludePartial)
+                        {
+                            fileMerger.MergeFile(file.Path, budget);
+                            budget = 0;
+                        }
+                        // Escludi completamente se ExcludeCompletely
+                        break;
+                    }
                     progressTask.Increment(1);
                 }
             });
@@ -217,6 +230,26 @@ public static class ExecutionFlow
             logger.WriteLog("Operazione completata con output a console.", LogLevel.INFO);
             Console.WriteLine("Operazione completata con output a console.");
         }
+    }
+
+    // Helper per ottenere CollectedFileInfo anche se il file non esiste più
+    private static CollectedFileInfo GetFileInfoSafe(FileCollector collector, string path)
+    {
+        try
+        {
+            var fi = new System.IO.FileInfo(path);
+            return new CollectedFileInfo
+            {
+                Path = path,
+                Size = fi.Length,
+                LastModified = fi.LastWriteTime,
+                Extension = fi.Extension.ToLower(),
+                EstimatedTokens = collector.GetType()
+                    .GetMethod("EstimateFileTokens", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+                    .Invoke(collector, new object[] { path, fi }) as int? ?? 1
+            };
+        }
+        catch { return null; }
     }
 
     #endregion

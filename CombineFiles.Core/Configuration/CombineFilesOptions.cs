@@ -25,7 +25,8 @@ public class CombineFilesOptions
     public string MaxSize { get; set; }
     public int MaxLinesPerFile { get; set; }      // 0 = senza limite di righe
     public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
-    public TokenLimitStrategy PartialFileMode { get; set; } = TokenLimitStrategy.IncludePartial; 
+    public TokenLimitStrategy PartialFileMode { get; set; } = TokenLimitStrategy.IncludePartial; // IncludePartial, ExcludeCompletely, PaginateOutput
+    public int MaxTokensPerPage { get; set; }     // Solo per PaginateOutput (stub)
 
     public bool Debug { get; set; } // Abilita la modalità di debug dettagliata
 
