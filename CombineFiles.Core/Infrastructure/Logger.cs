@@ -4,6 +4,9 @@ using Spectre.Console;
 
 namespace CombineFiles.Core.Infrastructure
 {
+    /// <summary>
+    /// Logger semplice per file-based logging e console output.
+    /// </summary>
     public class Logger
     {
         private readonly string _logFile;
@@ -12,12 +15,18 @@ namespace CombineFiles.Core.Infrastructure
         // Aggiunta: livello minimo di log
         public LogLevel MinimumLogLevel { get; }
 
-
         public Logger(string logFile, bool enabled, LogLevel minimumLogLevel = LogLevel.INFO)
         {
             _logFile = logFile;
             _enabled = enabled;
             MinimumLogLevel = minimumLogLevel;
+        }
+
+        public Logger(bool enableLog = false)
+        {
+            _logFile = Path.Combine(Directory.GetCurrentDirectory(), "CombineFiles.log");
+            _enabled = enableLog;
+            MinimumLogLevel = LogLevel.INFO;
         }
 
         /// <summary>
@@ -61,9 +70,9 @@ namespace CombineFiles.Core.Infrastructure
                     string logMessage = $"{timestamp} [{logLevel}] {message}";
                     File.AppendAllText(_logFile, logMessage + Environment.NewLine);
                 }
-                catch
+                catch (Exception)
                 {
-                    // Se fallisce la scrittura su file, gestire l’errore (qui viene ignorato)
+                    // Ignora errori di scrittura file
                 }
             }
 

@@ -7,7 +7,6 @@ using CombineFiles.Core.Helpers;
 
 namespace CombineFiles.Core.Services;
 
-[Obsolete("Al momento non è usato")]
 public interface IFileOperationsService
 {
     void Copy(string sourcePath, string destinationPath, bool isDirectory);
@@ -22,7 +21,6 @@ public class OperationResult
     public string Message { get; set; }
 }
 
-[Obsolete("Al momento non è usato")]
 public class FileOperationsService : IFileOperationsService
 {
     public void Copy(string sourcePath, string destinationPath, bool isDirectory)

@@ -477,4 +477,40 @@ public class FileCollector
         var result = SelectFilesWithinTokenLimit(filteredFiles, maxTokens, priorityStrategy, null, tokenLimitStrategy);
         return result.IncludedFiles.Select(f => f.Path).ToList();
     }
+
+    /// <summary>
+    /// Raccoglie file in base alle estensioni specificate.
+    /// </summary>
+    public List<string> CollectFilesByExtensions(string startPath, bool recurse, List<string> extensions, int? maxTokens = null)
+    {
+        var allFiles = GetAllFilesWithTokenInfo(startPath, recurse, null);
+        var filtered = allFiles.IncludedFiles
+            .Where(f => extensions.Any(ext => f.Path.EndsWith(ext, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        if (maxTokens.HasValue && maxTokens.Value > 0)
+        {
+            return ApplyTokenLimitToFilteredFiles(filtered, maxTokens.Value, FilePriorityStrategy.SizeAscending, TokenLimitStrategy.IncludePartial);
+        }
+
+        return filtered.Select(f => f.Path).ToList();
+    }
+
+    /// <summary>
+    /// Raccoglie file in base ai pattern regex specificati.
+    /// </summary>
+    public List<string> CollectFilesByRegex(string startPath, bool recurse, List<string> regexPatterns, int? maxTokens = null)
+    {
+        var allFiles = GetAllFilesWithTokenInfo(startPath, recurse, null);
+        var filtered = allFiles.IncludedFiles
+            .Where(f => regexPatterns.Any(pattern => System.Text.RegularExpressions.Regex.IsMatch(f.Path, pattern)))
+            .ToList();
+
+        if (maxTokens.HasValue && maxTokens.Value > 0)
+        {
+            return ApplyTokenLimitToFilteredFiles(filtered, maxTokens.Value, FilePriorityStrategy.SizeAscending, TokenLimitStrategy.IncludePartial);
+        }
+
+        return filtered.Select(f => f.Path).ToList();
+    }
 }
