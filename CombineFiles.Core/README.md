@@ -34,7 +34,8 @@ Use it as a **CLI application** for quick “merge files” tasks, or as a **.NE
 - **Concatenate multiple text files** into a single output file.  
 - **Deduplication by hash**: omit duplicate files based on content.  
 - **Per-file line limits**: stop reading a file once a certain number of lines is reached.  
-- **Global token budget**: track “tokens” (e.g., line count or custom metric) across all input files, and stop merging when budget is exhausted.  
+- **Global token budget**: track "tokens" (e.g., line count or custom metric) across all input files, and stop merging when budget is exhausted.  
+- **Text compaction for LLM optimization**: reduce token usage by converting 4 spaces to tabs and removing excessive empty lines.  
 - **Interactive CLI wizard** (via Spectre.Console) to guide through merge options.  
 - **Cross-platform**: runs on Windows, macOS, and Linux via .NET 6+/.NET 8+.  
 - **Library-friendly**: reference `CombineFiles.Core` in your own .NET projects.  
@@ -50,7 +51,7 @@ Below are various ways to start using CombineFiles—either as a library or as a
 To install the core library into your .NET project:
 
 ```bash
-dotnet add package CombineFiles.Core --version 1.2.0
+dotnet add package CombineFiles.Core --version 1.3.0
 ````
 
 > This package contains all merging logic (classes like `FileMerger`, helpers, and models). It does **not** include the console/UI layer.
@@ -140,6 +141,21 @@ CombineFiles merge \
 * `--dedupe-by-hash` (or `-d`): skip any file whose computed hash matches an already-processed file.
 * `--max-lines-per-file <int>`: stop reading a given file after `<int>` lines.
 
+### Text Compaction for LLM Optimization
+
+Optimize output for use with LLMs (ChatGPT, Claude, etc.) by reducing token usage:
+
+```bash
+CombineFiles merge \
+  --input-folder "./source" \
+  --output-file "./optimized.txt" \
+  --compact-spaces \
+  --compact-llm
+```
+
+* `--compact-spaces`: converts 4 consecutive spaces to 1 tab, reducing token count significantly for indented code.
+* `--compact-llm`: removes excessive empty lines (keeps max 1 consecutive empty line) and compacts headers for better LLM processing.
+
 ### Interactive Mode
 
 Launch an interactive wizard that will guide you through selecting folder, output path, and options:
@@ -172,8 +188,10 @@ merge:
   --output-file <path>         Path (including filename) for merged result
   -d, --dedupe-by-hash         Skip duplicate files based on computed hash
   --max-lines-per-file <int>   Maximum lines to read from each input file
-  --token-budget <int>         Global “token” limit across all files (e.g., total lines)
+  --token-budget <int>         Global "token" limit across all files (e.g., total lines)
   --filter-hidden              Include hidden files in the merge (off by default)
+  --compact-spaces             Convert 4 consecutive spaces to 1 tab (reduces token usage)
+  --compact-llm                Optimize output for LLM: remove excessive empty lines and compact headers
   --interactive                Launch interactive wizard
   -v, --verbose                Enable verbose logging to console
   -h, --help                   Show help and exit

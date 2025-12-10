@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and follows [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] – 2025-12-10
+### Added
+- Nuova classe `TextCompactor` per ottimizzare l'output per l'uso con LLM (ChatGPT, Claude, ecc.).  
+- Opzione CLI `--compact-spaces`: converte 4 spazi consecutivi in 1 tab per ridurre i token utilizzati.  
+- Opzione CLI `--compact-llm`: ottimizza l'output per LLM rimuovendo righe vuote eccessive e compattando header.  
+- Integrazione della compattazione in `FileMerger` e `PaginatedFileMerger` per supportare l'ottimizzazione durante il merge dei file.  
+
+### Changed
+- `FileMerger` e `PaginatedFileMerger` ora supportano opzioni di compattazione tramite parametri del costruttore.  
+- `CombineFilesOptions` esteso con proprietà `CompactSpacesToTabs` e `CompactForLLM`.  
+
+> **Tag:** `v1.3.0`  
+> **Commit:** "feat: aggiunta compattazione testo per ottimizzare output con LLM" (2025-12-10).
+
+---
+
 ## [1.2.0] – 2025-06-05
 ### Fixed
 - Refactored and fixed `MergeFile` method to prevent truncated output (missing `Flush`) and improve modularity.  

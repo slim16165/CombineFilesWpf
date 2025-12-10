@@ -34,6 +34,10 @@ public class CombineFilesOptions
     //starts full‑screen interactive wizard
     public bool Interactive { get; set; }
 
+    // Opzioni di compattazione per ottimizzare output con LLM
+    public bool CompactSpacesToTabs { get; set; } = false;  // Converte 4 spazi in 1 tab
+    public bool CompactForLLM { get; set; } = false;         // Rimuove righe vuote eccessive e compatta header
+
     public DateTime? MinDate { get; set; }
     public DateTime? MaxDate { get; set; }
     public bool Recurse { get; set; }

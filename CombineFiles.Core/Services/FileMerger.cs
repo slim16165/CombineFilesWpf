@@ -41,6 +41,8 @@ public sealed class FileMerger : IDisposable
     private readonly int _maxLinesPerFile;
     private readonly int _tokensPerFile;          // <-- QUI
     private readonly TokenLimitStrategy _tokenLimitStrategy;
+    private readonly bool _compactSpacesToTabs;
+    private readonly bool _compactForLLM;
 
     private readonly SHA256 _sha = SHA256.Create();
     private readonly HashSet<string> _processedHashes = new(StringComparer.OrdinalIgnoreCase);
@@ -56,7 +58,9 @@ public sealed class FileMerger : IDisposable
         bool listOnlyFileNames,
         int maxLinesPerFile,
         TokenLimitStrategy tokenLimitStrategy,
-        int tokensPerFile
+        int tokensPerFile,
+        bool compactSpacesToTabs = false,
+        bool compactForLLM = false
     )
     {
         _logger = logger;
@@ -65,6 +69,8 @@ public sealed class FileMerger : IDisposable
         _maxLinesPerFile = maxLinesPerFile;
         _tokensPerFile = tokensPerFile;  // 0 = nessun limite
         _tokenLimitStrategy = tokenLimitStrategy;
+        _compactSpacesToTabs = compactSpacesToTabs;
+        _compactForLLM = compactForLLM;
 
         if (!_outputToConsole)
         {
@@ -276,6 +282,13 @@ public sealed class FileMerger : IDisposable
 
     private void WriteLine(string s = "")
     {
+        // Applica compattazione se richiesta
+        if (!string.IsNullOrEmpty(s))
+        {
+            if (_compactSpacesToTabs)
+                s = Helpers.TextCompactor.CompactSpacesToTabs(s);
+        }
+
         if (_outputToConsole) Console.WriteLine(s);
         else _writer!.WriteLine(s);
     }

@@ -80,6 +80,14 @@ public static class RootCommandBuilder
             .WithShortAlias("d")
             .Build();
 
+        var compactSpacesOption = OptionBuilder.For<bool>("Compact-spaces")
+            .WithDescription("Converte 4 spazi consecutivi in 1 tab per ridurre i token")
+            .Build();
+
+        var compactLLMOption = OptionBuilder.For<bool>("Compact-llm")
+            .WithDescription("Ottimizza l'output per LLM: rimuove righe vuote eccessive e compatta header")
+            .Build();
+
         //while (!Debugger.IsAttached) Thread.Sleep(100);
         //Debugger.Break();
 
@@ -98,6 +106,8 @@ public static class RootCommandBuilder
         rootCommand.AddOption(maxTokensOption);
         rootCommand.AddOption(partialFileModeOption);
         rootCommand.AddOption(debugOption);
+        rootCommand.AddOption(compactSpacesOption);
+        rootCommand.AddOption(compactLLMOption);
 
         // Imposta il gestore con un binder personalizzato
         rootCommand.SetHandler(
@@ -125,7 +135,9 @@ public static class RootCommandBuilder
                 interactiveOpt,
                 maxTokensOption,
                 partialFileModeOption,
-                debugOption));
+                debugOption,
+                compactSpacesOption,
+                compactLLMOption));
 
         return rootCommand;
     }

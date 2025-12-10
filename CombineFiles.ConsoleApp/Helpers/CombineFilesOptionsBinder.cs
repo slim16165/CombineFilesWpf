@@ -22,6 +22,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
     private readonly Option<bool> _interactiveOption;
     private readonly Option<int> _maxTokensOption;
     private readonly Option<string> _partialFileModeOption;
+    private readonly Option<bool> _compactSpacesOption;
+    private readonly Option<bool> _compactLLMOption;
 
     public CombineFilesOptionsBinder(Option<bool> helpOption,
         Option<bool> listPresetsOption,
@@ -36,7 +38,9 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         Option<bool> interactiveOption,
         Option<int> maxTokensOption,
         Option<string> partialFileModeOption,
-        Option<bool> debugOption)
+        Option<bool> debugOption,
+        Option<bool> compactSpacesOption,
+        Option<bool> compactLLMOption)
     {
         _helpOption = helpOption;
         _listPresetsOption = listPresetsOption;
@@ -51,6 +55,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
         _interactiveOption = interactiveOption;
         _maxTokensOption = maxTokensOption;
         _partialFileModeOption = partialFileModeOption;
+        _compactSpacesOption = compactSpacesOption;
+        _compactLLMOption = compactLLMOption;
     }
 
     protected override CombineFilesOptions GetBoundValue(BindingContext bindingContext)
@@ -80,6 +86,8 @@ public class CombineFilesOptionsBinder : BinderBase<CombineFilesOptions>
             Interactive = bindingContext.ParseResult.GetValueForOption(_interactiveOption),
             MaxTotalTokens = bindingContext.ParseResult.GetValueForOption(_maxTokensOption),
             PartialFileMode = partialFileModeEnum,
+            CompactSpacesToTabs = bindingContext.ParseResult.GetValueForOption(_compactSpacesOption),
+            CompactForLLM = bindingContext.ParseResult.GetValueForOption(_compactLLMOption),
         };
     }
 }

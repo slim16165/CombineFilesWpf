@@ -20,6 +20,8 @@ public sealed class PaginatedFileMerger : IDisposable
     private readonly int _maxLinesPerFile;
     private readonly int _maxTokensPerPage;
     private readonly int _tokensPerFile;
+    private readonly bool _compactSpacesToTabs;
+    private readonly bool _compactForLLM;
 
     private StreamWriter? _currentWriter;
     private int _currentPage;
@@ -27,6 +29,7 @@ public sealed class PaginatedFileMerger : IDisposable
     private readonly SHA256 _sha = SHA256.Create();
     private readonly System.Collections.Generic.HashSet<string> _processedHashes = new(System.StringComparer.OrdinalIgnoreCase);
     private readonly string _baseDir = Directory.GetCurrentDirectory();
+    private readonly System.Collections.Generic.List<string> _currentPageLines = new(); // Per compattazione LLM
 
     public PaginatedFileMerger(
         Logger logger,
@@ -35,7 +38,9 @@ public sealed class PaginatedFileMerger : IDisposable
         bool listOnlyFileNames,
         int maxLinesPerFile,
         int maxTokensPerPage,
-        int tokensPerFile = 0)
+        int tokensPerFile = 0,
+        bool compactSpacesToTabs = false,
+        bool compactForLLM = false)
     {
         _logger = logger;
         _outputToConsole = outputToConsole;
@@ -44,6 +49,8 @@ public sealed class PaginatedFileMerger : IDisposable
         _maxLinesPerFile = maxLinesPerFile;
         _maxTokensPerPage = maxTokensPerPage;
         _tokensPerFile = tokensPerFile;
+        _compactSpacesToTabs = compactSpacesToTabs;
+        _compactForLLM = compactForLLM;
         _currentPage = 1;
         _currentPageTokens = 0;
 
@@ -108,7 +115,12 @@ public sealed class PaginatedFileMerger : IDisposable
                 WriteHeader(relativePath); // Riscrivi header nella nuova pagina
             }
 
-            WriteLine(line);
+            // Applica compattazione spazi se richiesta
+            string processedLine = line;
+            if (_compactSpacesToTabs)
+                processedLine = Helpers.TextCompactor.CompactSpacesToTabs(processedLine);
+
+            WriteLine(processedLine);
             lines++;
             tokens += lineTokens;
             _currentPageTokens += lineTokens;
@@ -128,6 +140,7 @@ public sealed class PaginatedFileMerger : IDisposable
             return;
 
         _currentWriter?.Dispose();
+        _currentPageLines.Clear();
 
         string pageFile = GetPageFileName(_currentPage);
         _currentWriter = new StreamWriter(pageFile, false, new UTF8Encoding(false));
@@ -140,8 +153,26 @@ public sealed class PaginatedFileMerger : IDisposable
     {
         if (_currentWriter != null)
         {
-            WriteLine();
-            WriteLine($"### Fine pagina {_currentPage} ###");
+            // Se compattazione LLM è attiva, applica a tutta la pagina accumulata
+            if (_compactForLLM && _currentPageLines.Count > 0)
+            {
+                string fullPage = string.Join(Environment.NewLine, _currentPageLines);
+                fullPage = Helpers.TextCompactor.CompactForLLM(fullPage);
+                _currentWriter.Write(fullPage);
+                _currentWriter.WriteLine();
+                _currentWriter.WriteLine($"### Fine pagina {_currentPage} ###");
+                _currentPageLines.Clear();
+            }
+            else
+            {
+                // Se non abbiamo accumulato, scriviamo normalmente
+                if (!_compactForLLM)
+                {
+                    WriteLine();
+                    WriteLine($"### Fine pagina {_currentPage} ###");
+                }
+            }
+            
             _currentWriter.Flush();
             _currentWriter.Dispose();
             _currentWriter = null;
@@ -164,10 +195,19 @@ public sealed class PaginatedFileMerger : IDisposable
 
     private void WriteLine(string s = "")
     {
-        if (_outputToConsole)
-            Console.WriteLine(s);
+        // Se compattazione LLM è attiva e stiamo scrivendo su file, accumula le righe
+        if (_compactForLLM && !_outputToConsole && _currentWriter != null)
+        {
+            _currentPageLines.Add(s);
+        }
         else
-            _currentWriter?.WriteLine(s);
+        {
+            // Scrittura diretta (console o file senza compattazione LLM)
+            if (_outputToConsole)
+                Console.WriteLine(s);
+            else
+                _currentWriter?.WriteLine(s);
+        }
     }
 
     private void Flush()
@@ -199,6 +239,16 @@ public sealed class PaginatedFileMerger : IDisposable
     /// </summary>
     public void FinalizePages()
     {
+        // Se c'è ancora contenuto accumulato, scrivilo prima di chiudere
+        if (_compactForLLM && _currentPageLines.Count > 0 && _currentWriter != null)
+        {
+            string fullPage = string.Join(Environment.NewLine, _currentPageLines);
+            fullPage = Helpers.TextCompactor.CompactForLLM(fullPage);
+            _currentWriter.Write(fullPage);
+            _currentWriter.Flush();
+            _currentPageLines.Clear();
+        }
+
         if (!_outputToConsole && !string.IsNullOrWhiteSpace(_baseOutputFile) && _currentPage > 1)
         {
             CloseCurrentPage();

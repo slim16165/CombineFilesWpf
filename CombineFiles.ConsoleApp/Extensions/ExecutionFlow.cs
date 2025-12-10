@@ -223,7 +223,9 @@ public static class ExecutionFlow
                 options.ListOnlyFileNames,
                 options.MaxLinesPerFile,
                 options.MaxTokensPerPage,
-                options.MaxTotalTokens > 0 ? options.MaxTotalTokens : 0);
+                options.MaxTotalTokens > 0 ? options.MaxTotalTokens : 0,
+                options.CompactSpacesToTabs,
+                options.CompactForLLM);
 
             AnsiConsole.Progress()
                 .Start(ctx =>
@@ -254,7 +256,9 @@ public static class ExecutionFlow
                 options.ListOnlyFileNames,
                 options.MaxLinesPerFile,
                 options.PartialFileMode,
-                0 // default, usiamo overload con limite per-file
+                0, // default, usiamo overload con limite per-file
+                options.CompactSpacesToTabs,
+                options.CompactForLLM
             );
 
             AnsiConsole.Progress()
