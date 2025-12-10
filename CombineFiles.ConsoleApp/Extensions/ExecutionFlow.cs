@@ -49,6 +49,29 @@ public static class ExecutionFlow
 
         if (!PrepareOutputFile(options, logger)) return;
 
+        // Genera report analytics se richiesto
+        if (options.Debug || options.EnableLog)
+        {
+            var analytics = new AnalyticsService();
+            var stats = analytics.AnalyzeFiles(filesToProcess);
+            logger.WriteLog(analytics.GenerateTextReport(stats), LogLevel.INFO);
+            
+            // Salva anche report HTML se non è output a console
+            if (!options.OutputToConsole && !string.IsNullOrWhiteSpace(options.OutputFile))
+            {
+                string htmlReportPath = Path.ChangeExtension(options.OutputFile, ".html");
+                try
+                {
+                    File.WriteAllText(htmlReportPath, analytics.GenerateHtmlReport(stats), Encoding.UTF8);
+                    logger.WriteLog($"Report HTML generato: {htmlReportPath}", LogLevel.INFO);
+                }
+                catch (Exception ex)
+                {
+                    logger.WriteLog($"Errore nella generazione del report HTML: {ex.Message}", LogLevel.WARNING);
+                }
+            }
+        }
+
         MergeFiles(filesToProcess, options, logger);
     }
 
@@ -120,8 +143,15 @@ public static class ExecutionFlow
         string sourcePath)
     {
         logger.WriteLog("Inizio raccolta dei file da processare", LogLevel.INFO);
+        
+        // Normalizza anche IncludePaths se presenti
+        var normalizedIncludePaths = options.IncludePaths != null && options.IncludePaths.Count > 0
+            ? PathHelper.NormalizeExcludePaths(options.IncludePaths, sourcePath, logger)  // Usa stesso helper
+            : new List<string>();
+        
         var fileCollector = new FileCollector(
             logger,
+            normalizedIncludePaths,
             normalizedExcludePaths,
             options.ExcludeFiles,
             options.ExcludeFilePatterns
@@ -171,9 +201,10 @@ public static class ExecutionFlow
         // Ottieni info dettagliate sui file (token stimati)
         var fileCollector = new FileCollector(
             logger,
-            options.ExcludePaths,
-            options.ExcludeFiles,
-            options.ExcludeFilePatterns
+            options.IncludePaths ?? new List<string>(),
+            options.ExcludePaths ?? new List<string>(),
+            options.ExcludeFiles ?? new List<string>(),
+            options.ExcludeFilePatterns ?? new List<string>()
         );
         var fileInfos = filesToProcess
             .Select(f => new { Path = f, Info = GetFileInfoSafe(fileCollector, f) })
@@ -182,55 +213,89 @@ public static class ExecutionFlow
             .OrderBy(f => f.EstimatedTokens) // puoi cambiare strategia qui
             .ToList();
 
-        int budget = options.MaxTotalTokens > 0 ? options.MaxTotalTokens : int.MaxValue;
-        var fileMerger = new FileMerger(
-            logger,
-            options.OutputToConsole,
-            options.OutputFile,
-            options.ListOnlyFileNames,
-            options.MaxLinesPerFile,
-            options.PartialFileMode,
-            0 // default, usiamo overload con limite per-file
-        );
-
-        AnsiConsole.Progress()
-            .Start(ctx =>
-            {
-                var progressTask = ctx.AddTask("[green]Merging files...[/]", maxValue: fileInfos.Count);
-                foreach (var file in fileInfos)
-                {
-                    if (budget <= 0)
-                        break;
-                    int tokensForThisFile = file.EstimatedTokens;
-                    if (tokensForThisFile <= budget)
-                    {
-                        fileMerger.MergeFile(file.Path);
-                        budget -= tokensForThisFile;
-                    }
-                    else
-                    {
-                        // Tronca solo questo file
-                        if (options.PartialFileMode == TokenLimitStrategy.IncludePartial)
-                        {
-                            fileMerger.MergeFile(file.Path, budget);
-                            budget = 0;
-                        }
-                        // Escludi completamente se ExcludeCompletely
-                        break;
-                    }
-                    progressTask.Increment(1);
-                }
-            });
-
-        if (!options.OutputToConsole)
+        // Usa PaginatedFileMerger se la strategia è PaginateOutput
+        if (options.PartialFileMode == TokenLimitStrategy.PaginateOutput && options.MaxTokensPerPage > 0)
         {
-            logger.WriteLog($"Operazione completata. Controlla il file '{options.OutputFile}'.", LogLevel.INFO);
-            Console.WriteLine($"Operazione completata. Controlla il file '{options.OutputFile}'.");
+            using var paginatedMerger = new PaginatedFileMerger(
+                logger,
+                options.OutputToConsole,
+                options.OutputFile,
+                options.ListOnlyFileNames,
+                options.MaxLinesPerFile,
+                options.MaxTokensPerPage,
+                options.MaxTotalTokens > 0 ? options.MaxTotalTokens : 0);
+
+            AnsiConsole.Progress()
+                .Start(ctx =>
+                {
+                    var progressTask = ctx.AddTask("[green]Merging files (paginated)...[/]", maxValue: fileInfos.Count);
+                    foreach (var file in fileInfos)
+                    {
+                        paginatedMerger.MergeFile(file.Path);
+                        progressTask.Increment(1);
+                    }
+                });
+
+            paginatedMerger.FinalizePages();
+
+            if (!options.OutputToConsole)
+            {
+                logger.WriteLog($"Operazione completata. Controlla i file paginati e l'indice.", LogLevel.INFO);
+                Console.WriteLine($"Operazione completata. Controlla i file paginati e l'indice.");
+            }
         }
         else
         {
-            logger.WriteLog("Operazione completata con output a console.", LogLevel.INFO);
-            Console.WriteLine("Operazione completata con output a console.");
+            int budget = options.MaxTotalTokens > 0 ? options.MaxTotalTokens : int.MaxValue;
+            using var fileMerger = new FileMerger(
+                logger,
+                options.OutputToConsole,
+                options.OutputFile,
+                options.ListOnlyFileNames,
+                options.MaxLinesPerFile,
+                options.PartialFileMode,
+                0 // default, usiamo overload con limite per-file
+            );
+
+            AnsiConsole.Progress()
+                .Start(ctx =>
+                {
+                    var progressTask = ctx.AddTask("[green]Merging files...[/]", maxValue: fileInfos.Count);
+                    foreach (var file in fileInfos)
+                    {
+                        if (budget <= 0)
+                            break;
+                        int tokensForThisFile = file.EstimatedTokens;
+                        if (tokensForThisFile <= budget)
+                        {
+                            fileMerger.MergeFile(file.Path);
+                            budget -= tokensForThisFile;
+                        }
+                        else
+                        {
+                            // Tronca solo questo file
+                            if (options.PartialFileMode == TokenLimitStrategy.IncludePartial)
+                            {
+                                fileMerger.MergeFile(file.Path, budget);
+                                budget = 0;
+                            }
+                            // Escludi completamente se ExcludeCompletely
+                            break;
+                        }
+                        progressTask.Increment(1);
+                    }
+                });
+
+            if (!options.OutputToConsole)
+            {
+                logger.WriteLog($"Operazione completata. Controlla il file '{options.OutputFile}'.", LogLevel.INFO);
+                Console.WriteLine($"Operazione completata. Controlla il file '{options.OutputFile}'.");
+            }
+            else
+            {
+                logger.WriteLog("Operazione completata con output a console.", LogLevel.INFO);
+                Console.WriteLine("Operazione completata con output a console.");
+            }
         }
     }
 

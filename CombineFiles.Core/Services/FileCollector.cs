@@ -40,6 +40,7 @@ public enum FilePriorityStrategy
 public class FileCollector
 {
     private readonly Logger _logger;
+    private readonly List<string> _includePaths;  // Nuovo: cartelle da includere esplicitamente
     private readonly List<string> _excludePaths;
     private readonly List<string> _excludeFiles;
     private readonly List<string> _excludeFilePatterns;
@@ -50,11 +51,22 @@ public class FileCollector
         List<string> excludePaths,
         List<string> excludeFiles,
         List<string> excludeFilePatterns)
+        : this(logger, new List<string>(), excludePaths, excludeFiles, excludeFilePatterns)
+    {
+    }
+
+    public FileCollector(
+        Logger logger,
+        List<string> includePaths,
+        List<string> excludePaths,
+        List<string> excludeFiles,
+        List<string> excludeFilePatterns)
     {
         _logger = logger;
-        _excludePaths = excludePaths;
-        _excludeFiles = excludeFiles;
-        _excludeFilePatterns = excludeFilePatterns;
+        _includePaths = includePaths ?? new List<string>();
+        _excludePaths = excludePaths ?? new List<string>();
+        _excludeFiles = excludeFiles ?? new List<string>();
+        _excludeFilePatterns = excludeFilePatterns ?? new List<string>();
         _basePath = Directory.GetCurrentDirectory();
     }
 
@@ -76,6 +88,28 @@ public class FileCollector
 
     private bool IsPathExcluded(string filePath)
     {
+        // Se ci sono IncludePaths, il file deve essere in una di quelle cartelle
+        if (_includePaths.Count > 0)
+        {
+            bool isIncluded = false;
+            foreach (var includePath in _includePaths)
+            {
+                if (filePath.StartsWith(includePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    isIncluded = true;
+                    break;
+                }
+            }
+            if (!isIncluded)
+            {
+                _logger.WriteLog(
+                    $"Escluso: {ToRelativePath(filePath)} non è in una cartella inclusa",
+                    LogLevel.DEBUG
+                );
+                return true;
+            }
+        }
+
         // Esclusione per directory
         foreach (var path in _excludePaths)
         {

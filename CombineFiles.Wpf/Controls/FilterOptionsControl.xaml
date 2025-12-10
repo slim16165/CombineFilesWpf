@@ -15,8 +15,14 @@
                 <telerik:RadWatermarkTextBox x:Name="txtExcludeExtensions" Width="400" WatermarkContent=".exe;.dll"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Label Content="Percorsi da Includere:" Width="200"/>
+                <telerik:RadWatermarkTextBox x:Name="txtIncludePaths" Width="400" WatermarkContent="C:\Source;D:\Projects"/>
+                <Button x:Name="btnSelectIncludePaths" Content="Seleziona..." Width="100" Margin="5,0,0,0" Click="BtnSelectIncludePaths_Click"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Percorsi da Escludere:" Width="200"/>
                 <telerik:RadWatermarkTextBox x:Name="txtExcludePaths" Width="400" WatermarkContent="C:\Temp;D:\Backup"/>
+                <Button x:Name="btnSelectExcludePaths" Content="Seleziona..." Width="100" Margin="5,0,0,0" Click="BtnSelectExcludePaths_Click"/>
             </StackPanel>
         </StackPanel>
     </GroupBox>

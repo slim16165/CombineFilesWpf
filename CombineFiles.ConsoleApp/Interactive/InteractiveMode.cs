@@ -47,9 +47,17 @@ public static class InteractiveMode
                     .ToList();
         }
 
-        // Interactive folder selector for exclusions
-        if (AnsiConsole.Confirm("Interactively exclude sub‑folders?"))
+        // Interactive folder selector for inclusions/exclusions
+        if (AnsiConsole.Confirm("Selezionare cartelle da includere/escludere?"))
+        {
+            var (included, excluded) = InteractiveFolderSelector.SelectIncludedAndExcludedPaths();
+            options.IncludePaths = included;
+            options.ExcludePaths = excluded;
+        }
+        else if (AnsiConsole.Confirm("Interactively exclude sub‑folders?"))
+        {
             options.ExcludePaths = InteractiveFolderSelector.SelectExcludedPaths();
+        }
 
         // Advanced section
         if (AnsiConsole.Confirm("Configure advanced filters?"))

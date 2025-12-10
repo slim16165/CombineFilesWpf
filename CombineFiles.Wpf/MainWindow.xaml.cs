@@ -219,6 +219,7 @@ public partial class MainWindow : Window
             ExcludeHidden = FilterOptions.ExcludeHidden,
             IncludeExtensions = FilterOptions.IncludeExtensions,
             ExcludeExtensions = FilterOptions.ExcludeExtensions,
+            IncludePaths = FilterOptions.IncludePaths,
             ExcludePaths = FilterOptions.ExcludePaths
         };
 
@@ -287,6 +288,7 @@ public partial class MainWindow : Window
                 FilterOptions.chkExcludeHidden.IsChecked = configContainer.SearchConfig.ExcludeHidden;
                 FilterOptions.txtIncludeExtensions.Text = configContainer.SearchConfig.IncludeExtensions;
                 FilterOptions.txtExcludeExtensions.Text = configContainer.SearchConfig.ExcludeExtensions;
+                FilterOptions.txtIncludePaths.Text = configContainer.SearchConfig.IncludePaths ?? "";
                 FilterOptions.txtExcludePaths.Text = configContainer.SearchConfig.ExcludePaths;
 
                 // Aggiorna i campi di OutputOptions con i valori di MergeConfig

@@ -156,7 +156,10 @@ public sealed class FileMerger : IDisposable
         int tokens = 0;
         bool truncated = false;
 
-        foreach (var line in File.ReadLines(fullPath))
+        // Rileva encoding del file
+        Encoding fileEncoding = EncodingDetector.DetectEncoding(fullPath);
+        
+        foreach (var line in File.ReadLines(fullPath, fileEncoding))
         {
             if (_maxLinesPerFile > 0 && lines >= _maxLinesPerFile)
             {
@@ -174,7 +177,7 @@ public sealed class FileMerger : IDisposable
             WriteLine(line);
             lines++;
             tokens += lineTokens;
-            bytes += Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
+            bytes += fileEncoding.GetByteCount(line) + Environment.NewLine.Length;
         }
 
         if (truncated)
@@ -212,7 +215,10 @@ public sealed class FileMerger : IDisposable
         bool truncated = false;
         int tokenLimit = maxTokensForThisFile > 0 ? maxTokensForThisFile : _tokensPerFile;
 
-        foreach (var line in File.ReadLines(fullPath))
+        // Rileva encoding del file
+        Encoding fileEncoding = EncodingDetector.DetectEncoding(fullPath);
+        
+        foreach (var line in File.ReadLines(fullPath, fileEncoding))
         {
             if (_maxLinesPerFile > 0 && lines >= _maxLinesPerFile)
             {
@@ -230,7 +236,7 @@ public sealed class FileMerger : IDisposable
             WriteLine(line);
             lines++;
             tokens += lineTokens;
-            bytes += Encoding.UTF8.GetByteCount(line) + Environment.NewLine.Length;
+            bytes += fileEncoding.GetByteCount(line) + Environment.NewLine.Length;
         }
 
         if (truncated)

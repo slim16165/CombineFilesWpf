@@ -6,6 +6,7 @@ public class FileSearchConfig
     public bool ExcludeHidden { get; set; }         // Se escludere i file nascosti
     public string IncludeExtensions { get; set; }   // Estensioni da includere (es. ".txt,.cs")
     public string ExcludeExtensions { get; set; }   // Estensioni da escludere
+    public string IncludePaths { get; set; }        // Percorsi da includere esplicitamente
     public string ExcludePaths { get; set; }        // Percorsi da escludere
 }
 

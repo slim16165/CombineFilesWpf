@@ -12,6 +12,7 @@ public class CombineFilesOptions
     public string? Preset { get; set; }
     public string? Mode { get; set; }
     public List<string> Extensions { get; set; } = new();
+    public List<string> IncludePaths { get; set; } = new();  // Nuovo: cartelle da includere esplicitamente
     public List<string> ExcludePaths { get; set; } = new();
     public List<string> ExcludeFiles { get; set; } = new();
     public List<string> ExcludeFilePatterns { get; set; } = new();
