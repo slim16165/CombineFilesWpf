@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "combinefiles": {
+      "command": "dotnet",
+      "args": [
+        "C:\\Users\\g.salvi\\Sviluppo\\Git Repository source\\CombineFiles\\CombineFiles.McpServer\\bin\\Release\\net8.0\\CombineFiles.McpServer.dll"
+      ]
+    }
+  }
+}
+
