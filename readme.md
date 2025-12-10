@@ -22,7 +22,16 @@
 - Modalità console per l'unione file (porting completo dello script PowerShell)  
 - Supporto a operazioni batch con logging dettagliato  
 - Gestione preset per scenari di combinazione complessi  
-- Output simile a PowerShell, ma con messaggi più “puliti” in modalità normale (debug abilitabile)
+- Output simile a PowerShell, ma con messaggi più "puliti" in modalità normale (debug abilitabile)
+- **Nuovo**: Compattazione spazi (4 spazi → 1 tab) per ridurre token
+- **Nuovo**: Ottimizzazione output per LLM (ChatGPT, Claude, ecc.)
+- **Nuovo**: Paginazione output basata su token
+
+### Server MCP per ChatGPT Desktop 🆕
+- Integrazione nativa con ChatGPT Desktop tramite MCP (Model Context Protocol)
+- Tool `combine_files` disponibile direttamente in ChatGPT
+- Supporto completo a tutte le opzioni di compattazione e paginazione
+- Vedi [CombineFiles.McpServer/README.md](CombineFiles.McpServer/README.md) per setup completo
 
 ### Modulo PowerShell (standalone)
 - **Indipendente**: il modulo PowerShell è stato spostato in un repository dedicato e può essere usato senza l'app WPF o la Console App.  
@@ -49,6 +58,17 @@ dotnet build CombineFiles.ConsoleApp
 dotnet run --project CombineFiles.ConsoleApp -- [opzioni]
 ```
 
+### Server MCP per ChatGPT Desktop 🆕
+Integra CombineFiles direttamente in ChatGPT Desktop per combinare file tramite comandi naturali.
+
+**Setup rapido:**
+1. Compila il server: `dotnet build CombineFiles.McpServer -c Release`
+2. Configura ChatGPT Desktop: vedi [SETUP.md](CombineFiles.McpServer/SETUP.md)
+3. Riavvia ChatGPT Desktop
+4. Usa: "Combina tutti i file .cs da C:\progetto in output.txt con compattazione LLM"
+
+Vedi [CombineFiles.McpServer/README.md](CombineFiles.McpServer/README.md) per documentazione completa.
+
 ### Modulo PowerShell (standalone)
 Lo script PowerShell ora è disponibile nel repository dedicato:
 [CombineFiles-PowerShell](https://github.com/slim16165/CombineFiles-PowerShell/)
@@ -70,6 +90,7 @@ Get-Command -Module CombineFiles
 CombineFilesWpf/
 ├── CombineFiles.Wpf/            # Applicazione principale WPF
 ├── CombineFiles.ConsoleApp/     # Console App: porting del modulo PowerShell
+├── CombineFiles.McpServer/      # Server MCP per ChatGPT Desktop 🆕
 └── docs/                        # Documentazione tecnica
 ```
 
@@ -79,8 +100,14 @@ CombineFilesWpf/
 
 ### Console App (C#)
 ```sh
-# Esempio di esecuzione:
+# Esempio di esecuzione base:
 CombineFiles.ConsoleApp --Preset "CSharp" --SourcePath "C:\cartella-input" --OutputFile "CombinedFile.cs"
+
+# Con compattazione spazi e ottimizzazione LLM:
+CombineFiles.ConsoleApp --extensions .cs --compact-spaces --compact-llm --output-file output.txt
+
+# Con paginazione basata su token:
+CombineFiles.ConsoleApp --extensions .cs --partial-file-mode paginate --max-tokens-per-page 100000 --compact-spaces --compact-llm
 ```
 
 ### Modulo PowerShell
@@ -131,7 +158,13 @@ Combine-Files -Preset $myPreset
 R: Assolutamente sì! Il modulo è completamente indipendente ed è disponibile nel repository [CombineFiles-PowerShell](https://github.com/slim16165/CombineFiles-PowerShell/).
 
 **D: Come gestite i file di grandi dimensioni?**  
-R: Usiamo stream reading/writing per minimizzare l'uso della memoria.
+R: Usiamo stream reading/writing per minimizzare l'uso della memoria. Inoltre, supportiamo paginazione dell'output quando si supera un limite di token.
+
+**D: Come posso ottimizzare l'output per ChatGPT o altri LLM?**  
+R: Usa le opzioni `--compact-spaces` (converte 4 spazi in 1 tab) e `--compact-llm` (rimuove righe vuote eccessive e compatta header). Oppure usa il server MCP per integrazione diretta con ChatGPT Desktop.
+
+**D: Come configuro ChatGPT Desktop per usare CombineFiles?**  
+R: Vedi la guida completa in [CombineFiles.McpServer/SETUP.md](CombineFiles.McpServer/SETUP.md). In sintesi: compila il server, aggiungi la configurazione in `%APPDATA%\ChatGPT\mcp.json` e riavvia ChatGPT Desktop.
 
 **D: È possibile contribuire al progetto?**  
 R: Sì, consulta il file CONTRIBUTING.md per le linee guida.
