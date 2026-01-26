@@ -92,7 +92,10 @@ CombineFilesWpf/
 ├── CombineFiles.ConsoleApp/     # Console App: porting del modulo PowerShell
 ├── CombineFiles.McpServer/      # Server MCP per ChatGPT Desktop 🆕
 └── docs/                        # Documentazione tecnica
-    └── ARCHITETTURA.md          # Documentazione architettura completa
+    ├── ARCHITETTURA.md          # Documentazione architettura completa
+    ├── PIANO_VALUTAZIONE_APPLICAZIONI.md  # Piano di valutazione maturità
+    ├── REPORT_VALUTAZIONE_PRELIMINARE.md  # Report valutazione preliminare
+    └── VALUTAZIONE_*.md         # Template valutazione per applicazione
 ```
 
 > **Nota:** Il modulo PowerShell standalone si trova ora nel repository [CombineFiles-PowerShell](https://github.com/slim16165/CombineFiles-PowerShell/), mentre qui risiede il porting in C#.
