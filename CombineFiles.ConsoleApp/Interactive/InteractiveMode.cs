@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text.Json;
 using CombineFiles.Core;
@@ -71,6 +71,17 @@ public static class InteractiveMode
 
             if (AnsiConsole.Confirm("Add regex exclusion patterns?"))
                 options.RegexPatterns = InteractiveRegexInput.GetRegexPatterns();
+        }
+
+        // Pagination settings
+        if (AnsiConsole.Confirm("Configure pagination settings?"))
+        {
+            options.TokenWarningThreshold = AnsiConsole.Ask<int>(
+                $"Token warning threshold (default: {options.TokenWarningThreshold:N0}):",
+                options.TokenWarningThreshold);
+            options.AutoPaginateOnThreshold = AnsiConsole.Confirm(
+                "Paginate automatically if threshold is exceeded? (No = ask each time)",
+                options.AutoPaginateOnThreshold);
         }
 
         // Output handling

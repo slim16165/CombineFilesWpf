@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CombineFiles.Core.Services;
 
@@ -28,6 +28,10 @@ public class CombineFilesOptions
     public int MaxTotalTokens { get; set; }       // 0 = senza limite di token
     public TokenLimitStrategy PartialFileMode { get; set; } = TokenLimitStrategy.IncludePartial; // IncludePartial, ExcludeCompletely, PaginateOutput
     public int MaxTokensPerPage { get; set; }     // Solo per PaginateOutput (stub)
+
+    // Opzioni per controllo paginazione automatica
+    public int TokenWarningThreshold { get; set; } = 200000; // Soglia oltre cui avvertire l'utente (default 200K per ChatGPT)
+    public bool AutoPaginateOnThreshold { get; set; } = false; // Se true, pagina automaticamente senza chiedere
 
     public bool Debug { get; set; } // Abilita la modalità di debug dettagliata
 

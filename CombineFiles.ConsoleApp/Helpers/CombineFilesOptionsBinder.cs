@@ -30,7 +30,9 @@ public static class CombineFilesOptionsBinder
         int maxTokens,
         string? partialFileMode,
         bool compactSpaces,
-        bool compactLLM)
+        bool compactLLM,
+        int tokenWarningThreshold,
+        bool autoPaginate)
     {
         return new CombineFilesOptionsBuilder()
             .WithHelp(help)
@@ -48,6 +50,8 @@ public static class CombineFilesOptionsBinder
             .WithPartialFileMode(partialFileMode)
             .WithCompactSpaces(compactSpaces)
             .WithCompactLLM(compactLLM)
+            .WithTokenWarningThreshold(tokenWarningThreshold)
+            .WithAutoPaginateOnThreshold(autoPaginate)
             .Build();
     }
 }

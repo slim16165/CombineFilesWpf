@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -49,11 +49,13 @@ public static class ExecutionFlow
 
         if (!PrepareOutputFile(options, logger)) return;
 
+        // Calcola sempre i token totali (non solo in debug) per controllo soglia
+        var analytics = new AnalyticsService();
+        var stats = analytics.AnalyzeFiles(filesToProcess);
+
         // Genera report analytics se richiesto
         if (options.Debug || options.EnableLog)
         {
-            var analytics = new AnalyticsService();
-            var stats = analytics.AnalyzeFiles(filesToProcess);
             logger.WriteLog(analytics.GenerateTextReport(stats), LogLevel.INFO);
             
             // Salva anche report HTML se non è output a console
@@ -68,6 +70,54 @@ public static class ExecutionFlow
                 catch (Exception ex)
                 {
                     logger.WriteLog($"Errore nella generazione del report HTML: {ex.Message}", LogLevel.WARNING);
+                }
+            }
+        }
+
+        // Controllo soglia token e paginazione automatica
+        // Salta se l'utente ha già configurato manualmente la paginazione
+        if (options.PartialFileMode != TokenLimitStrategy.PaginateOutput && 
+            stats.TotalTokens > options.TokenWarningThreshold)
+        {
+            if (options.AutoPaginateOnThreshold)
+            {
+                // Pagina automaticamente senza chiedere
+                options.PartialFileMode = TokenLimitStrategy.PaginateOutput;
+                if (options.MaxTokensPerPage <= 0)
+                {
+                    options.MaxTokensPerPage = (int)(options.TokenWarningThreshold * 0.9);
+                }
+                logger.WriteLog(
+                    $"Token totali ({stats.TotalTokens:N0}) superano la soglia ({options.TokenWarningThreshold:N0}). " +
+                    $"Paginazione automatica attivata con {options.MaxTokensPerPage:N0} token per pagina.",
+                    LogLevel.INFO);
+            }
+            else
+            {
+                // Chiedi all'utente cosa fare
+                var choice = PromptForPaginationChoice(stats.TotalTokens, options.TokenWarningThreshold, logger);
+                switch (choice)
+                {
+                    case PaginationChoice.Paginate:
+                        options.PartialFileMode = TokenLimitStrategy.PaginateOutput;
+                        if (options.MaxTokensPerPage <= 0)
+                        {
+                            options.MaxTokensPerPage = (int)(options.TokenWarningThreshold * 0.9);
+                        }
+                        logger.WriteLog(
+                            $"Paginazione attivata dall'utente. MaxTokensPerPage: {options.MaxTokensPerPage:N0}",
+                            LogLevel.INFO);
+                        break;
+                    case PaginationChoice.Proceed:
+                        // Continua normale, nessuna modifica
+                        logger.WriteLog(
+                            $"Utente ha scelto di procedere comunque con {stats.TotalTokens:N0} token (soglia: {options.TokenWarningThreshold:N0})",
+                            LogLevel.INFO);
+                        break;
+                    case PaginationChoice.Cancel:
+                        logger.WriteLog("Operazione annullata dall'utente.", LogLevel.INFO);
+                        Console.WriteLine("Operazione annullata.");
+                        return;
                 }
             }
         }
@@ -321,6 +371,50 @@ public static class ExecutionFlow
             };
         }
         catch { return null; }
+    }
+
+    /// <summary>
+    /// Scelte disponibili per la paginazione quando si supera la soglia token.
+    /// </summary>
+    private enum PaginationChoice
+    {
+        Paginate,   // Spezza in più file
+        Proceed,    // Procedi comunque con file singolo
+        Cancel      // Annulla operazione
+    }
+
+    /// <summary>
+    /// Chiede all'utente cosa fare quando i token totali superano la soglia.
+    /// </summary>
+    private static PaginationChoice PromptForPaginationChoice(int totalTokens, int threshold, Logger logger)
+    {
+        int suggestedPageSize = (int)(threshold * 0.9);
+        int estimatedPages = (int)Math.Ceiling((double)totalTokens / suggestedPageSize);
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine($"[yellow]⚠ Attenzione:[/] Il file combinato avrà circa [bold]{totalTokens:N0}[/] token.");
+        AnsiConsole.MarkupLine($"Questo supera la soglia consigliata di [bold]{threshold:N0}[/] token (limite ChatGPT ~200K).");
+        AnsiConsole.WriteLine();
+
+        var choice = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("[cyan]Cosa vuoi fare?[/]")
+                .AddChoices(new[]
+                {
+                    $"Spezza in file da ~{suggestedPageSize:N0} token ciascuno (circa {estimatedPages} file)",
+                    "Procedi comunque (file singolo)",
+                    "Annulla operazione"
+                }));
+
+        logger.WriteLog(
+            $"Prompt paginazione: {totalTokens:N0} token, soglia {threshold:N0}, scelta utente: {choice}",
+            LogLevel.INFO);
+
+        if (choice.Contains("Spezza"))
+            return PaginationChoice.Paginate;
+        if (choice.Contains("Annulla"))
+            return PaginationChoice.Cancel;
+        return PaginationChoice.Proceed;
     }
 
     #endregion

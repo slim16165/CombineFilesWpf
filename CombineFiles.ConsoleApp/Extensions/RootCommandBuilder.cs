@@ -87,6 +87,15 @@ public static class RootCommandBuilder
             .WithDescription("Ottimizza l'output per LLM: rimuove righe vuote eccessive e compatta header")
             .Build();
 
+        var tokenWarningThresholdOption = OptionBuilder.For<int>("Token-warning-threshold")
+            .WithDescription("Soglia token oltre cui avvertire l'utente (default: 200000 per ChatGPT)")
+            .WithDefaultValue(200000)
+            .Build();
+
+        var autoPaginateOption = OptionBuilder.For<bool>("Auto-paginate")
+            .WithDescription("Pagina automaticamente senza chiedere se si supera la soglia token")
+            .Build();
+
         //while (!Debugger.IsAttached) Thread.Sleep(100);
         //Debugger.Break();
 
@@ -96,7 +105,8 @@ public static class RootCommandBuilder
         // Aggiunta delle opzioni (System.CommandLine 2.0+ usa Options.Add invece di AddOption)
         AddOptions(rootCommand, helpOption, listPresetsOption, presetOption, modeOption, extensionsOption,
             excludePathsOption, excludeFilePatternsOption, outputFileOption, recurseOption, enableLogOption,
-            interactiveOpt, maxTokensOption, partialFileModeOption, debugOption, compactSpacesOption, compactLLMOption);
+            interactiveOpt, maxTokensOption, partialFileModeOption, debugOption, compactSpacesOption, compactLLMOption,
+            tokenWarningThresholdOption, autoPaginateOption);
 
         // Imposta il gestore con SetAction (System.CommandLine 2.0+ usa SetAction invece di SetHandler)
         rootCommand.SetAction(parseResult =>
@@ -117,11 +127,13 @@ public static class RootCommandBuilder
             string? partialFileMode = parseResult.GetValue(partialFileModeOption);
             bool compactSpaces = parseResult.GetValue(compactSpacesOption);
             bool compactLLM = parseResult.GetValue(compactLLMOption);
+            int tokenWarningThreshold = parseResult.GetValue(tokenWarningThresholdOption);
+            bool autoPaginate = parseResult.GetValue(autoPaginateOption);
 
             var options = CombineFilesOptionsBinder.CreateOptions(
                 help, listPresets, preset, mode, extensions, excludePaths, excludeFilePatterns,
                 outputFile, recurse, enableLog, interactive, maxTokens, partialFileMode,
-                compactSpaces, compactLLM);
+                compactSpaces, compactLLM, tokenWarningThreshold, autoPaginate);
 
             // If --interactive flag is present, open Spectre.Console wizard
             if (options.Interactive)

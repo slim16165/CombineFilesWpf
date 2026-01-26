@@ -25,6 +25,8 @@ public class CombineFilesOptionsBuilder
     private string? _partialFileMode;
     private bool _compactSpaces;
     private bool _compactLLM;
+    private int _tokenWarningThreshold = 200000; // Default 200K
+    private bool _autoPaginateOnThreshold;
 
     /// <summary>
     /// Crea un nuovo builder con valori di default.
@@ -173,6 +175,24 @@ public class CombineFilesOptionsBuilder
     }
 
     /// <summary>
+    /// Imposta la soglia token oltre cui avvertire l'utente.
+    /// </summary>
+    public CombineFilesOptionsBuilder WithTokenWarningThreshold(int threshold)
+    {
+        _tokenWarningThreshold = threshold;
+        return this;
+    }
+
+    /// <summary>
+    /// Imposta se paginare automaticamente senza chiedere quando si supera la soglia.
+    /// </summary>
+    public CombineFilesOptionsBuilder WithAutoPaginateOnThreshold(bool autoPaginate)
+    {
+        _autoPaginateOnThreshold = autoPaginate;
+        return this;
+    }
+
+    /// <summary>
     /// Costruisce l'istanza di CombineFilesOptions con i valori impostati.
     /// </summary>
     public CombineFilesOptions Build()
@@ -204,6 +224,8 @@ public class CombineFilesOptionsBuilder
             PartialFileMode = partialFileModeEnum,
             CompactSpacesToTabs = _compactSpaces,
             CompactForLLM = _compactLLM,
+            TokenWarningThreshold = _tokenWarningThreshold,
+            AutoPaginateOnThreshold = _autoPaginateOnThreshold,
         };
     }
 }
