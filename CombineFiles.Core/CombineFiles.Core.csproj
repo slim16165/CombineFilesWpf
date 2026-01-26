@@ -38,13 +38,13 @@
 	<ItemGroup>
 		<!-- Esempio: se la tua libreria core NON usa Spectre.Console o WPF, rimuovi quei riferimenti -->
 		 <PackageReference Include="CsvHelper" Version="33.1.0" />
-		 <PackageReference Include="Spectre.Console" Version="0.50.0" /> 
+		 <PackageReference Include="Spectre.Console" Version="0.54.0" /> 
 
 		<!-- Solo pacchetti utili al “core” di merging (esempio) -->
 		<PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" Condition="'$(TargetFramework)' == 'netstandard2.1' Or '$(TargetFramework)' == 'net8.0'" />
 		<!-- Se hai bisogno di SourceLink per debugging dal pacchetto -->
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-		<PackageReference Include="System.Text.Json" Version="9.0.6" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.102" PrivateAssets="All" />
+		<PackageReference Include="System.Text.Json" Version="10.0.2" />
 	</ItemGroup>
 
 	<!-- 8) Includi README e LICENSE nel NuGet -->

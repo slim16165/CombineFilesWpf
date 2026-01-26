@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 
@@ -58,9 +58,47 @@ public class OptionBuilder<T>
     public Option<T> Build()
     {
         var aliases = BuildAliasList();
-        Option<T> option = _hasDefaultValue
-            ? new Option<T>(aliases.ToArray(), () => _defaultValue, _description)
-            : new Option<T>(aliases.ToArray(), _description);
+        // In System.CommandLine 2.0+, il costruttore accetta params string[] per gli alias
+        // Usiamo reflection per chiamare il costruttore con params
+        Option<T> option;
+        var constructor = typeof(Option<T>).GetConstructor(
+            System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+            null,
+            new[] { typeof(string[]) },
+            null);
+        
+        if (constructor != null)
+        {
+            // Costruttore che accetta string[]
+            option = (Option<T>)constructor.Invoke(new object[] { aliases.ToArray() });
+        }
+        else
+        {
+            // Fallback: crea con il primo alias e aggiungi gli altri tramite Aliases collection
+            option = new Option<T>(aliases[0])
+            {
+                Description = _description
+            };
+            // Aggiungi gli altri alias
+            for (int i = 1; i < aliases.Count; i++)
+            {
+                // In System.CommandLine 2.0+, gli alias si aggiungono tramite la proprietà Aliases
+                var aliasesProperty = typeof(Option<T>).BaseType?.GetProperty("Aliases");
+                if (aliasesProperty != null && aliasesProperty.GetValue(option) is System.Collections.Generic.ICollection<string> aliasesCollection)
+                {
+                    aliasesCollection.Add(aliases[i]);
+                }
+            }
+        }
+        
+        option.Description = _description;
+        
+        // Imposta il default value se specificato (System.CommandLine 2.0+ usa DefaultValueFactory)
+        if (_hasDefaultValue)
+        {
+            option.DefaultValueFactory = _ => _defaultValue;
+        }
+        
         return option;
     }
 

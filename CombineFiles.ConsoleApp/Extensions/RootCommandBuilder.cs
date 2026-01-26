@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics;
 using CombineFiles.ConsoleApp.Helpers;
@@ -14,7 +14,6 @@ public static class RootCommandBuilder
 {
     public static RootCommand CreateRootCommand()
     {
-        var rootCommand = new RootCommand("Strumento per combinare file seguendo diverse modalità di selezione");
 
         // Utilizzo del builder pattern per creare le opzioni in modo fluido
         var helpOption = OptionBuilder.For<bool>("Help")
@@ -91,53 +90,60 @@ public static class RootCommandBuilder
         //while (!Debugger.IsAttached) Thread.Sleep(100);
         //Debugger.Break();
 
-        // Aggiunta delle opzioni al comando radice
-        rootCommand.AddOption(helpOption);
-        rootCommand.AddOption(listPresetsOption);
-        rootCommand.AddOption(presetOption);
-        rootCommand.AddOption(modeOption);
-        rootCommand.AddOption(extensionsOption);
-        rootCommand.AddOption(excludePathsOption);
-        rootCommand.AddOption(excludeFilePatternsOption);
-        rootCommand.AddOption(outputFileOption);
-        rootCommand.AddOption(recurseOption);
-        rootCommand.AddOption(enableLogOption);
-        rootCommand.AddOption(interactiveOpt);
-        rootCommand.AddOption(maxTokensOption);
-        rootCommand.AddOption(partialFileModeOption);
-        rootCommand.AddOption(debugOption);
-        rootCommand.AddOption(compactSpacesOption);
-        rootCommand.AddOption(compactLLMOption);
+        // Creazione del RootCommand (System.CommandLine 2.0+)
+        var rootCommand = new RootCommand("Strumento per combinare file seguendo diverse modalità di selezione");
+        
+        // Aggiunta delle opzioni (System.CommandLine 2.0+ usa Options.Add invece di AddOption)
+        rootCommand.Options.Add(helpOption);
+        rootCommand.Options.Add(listPresetsOption);
+        rootCommand.Options.Add(presetOption);
+        rootCommand.Options.Add(modeOption);
+        rootCommand.Options.Add(extensionsOption);
+        rootCommand.Options.Add(excludePathsOption);
+        rootCommand.Options.Add(excludeFilePatternsOption);
+        rootCommand.Options.Add(outputFileOption);
+        rootCommand.Options.Add(recurseOption);
+        rootCommand.Options.Add(enableLogOption);
+        rootCommand.Options.Add(interactiveOpt);
+        rootCommand.Options.Add(maxTokensOption);
+        rootCommand.Options.Add(partialFileModeOption);
+        rootCommand.Options.Add(debugOption);
+        rootCommand.Options.Add(compactSpacesOption);
+        rootCommand.Options.Add(compactLLMOption);
 
-        // Imposta il gestore con un binder personalizzato
-        rootCommand.SetHandler(
-            (CombineFilesOptions options) =>
+        // Imposta il gestore con SetAction (System.CommandLine 2.0+ usa SetAction invece di SetHandler)
+        rootCommand.SetAction(parseResult =>
+        {
+            // Estrai i valori dalle opzioni usando ParseResult
+            bool help = parseResult.GetValue(helpOption);
+            bool listPresets = parseResult.GetValue(listPresetsOption);
+            string? preset = parseResult.GetValue(presetOption);
+            string? mode = parseResult.GetValue(modeOption);
+            List<string>? extensions = parseResult.GetValue(extensionsOption);
+            List<string>? excludePaths = parseResult.GetValue(excludePathsOption);
+            List<string>? excludeFilePatterns = parseResult.GetValue(excludeFilePatternsOption);
+            string? outputFile = parseResult.GetValue(outputFileOption);
+            bool recurse = parseResult.GetValue(recurseOption);
+            bool enableLog = parseResult.GetValue(enableLogOption);
+            bool interactive = parseResult.GetValue(interactiveOpt);
+            int maxTokens = parseResult.GetValue(maxTokensOption);
+            string? partialFileMode = parseResult.GetValue(partialFileModeOption);
+            bool compactSpaces = parseResult.GetValue(compactSpacesOption);
+            bool compactLLM = parseResult.GetValue(compactLLMOption);
+
+            var options = CombineFilesOptionsBinder.CreateOptions(
+                help, listPresets, preset, mode, extensions, excludePaths, excludeFilePatterns,
+                outputFile, recurse, enableLog, interactive, maxTokens, partialFileMode,
+                compactSpaces, compactLLM);
+
+            // If --interactive flag is present, open Spectre.Console wizard
+            if (options.Interactive)
             {
-                // If --interactive flag is present, open Spectre.Console wizard
-                if (options.Interactive)
-                {
-                    options = InteractiveMode.Run();
-                }
+                options = InteractiveMode.Run();
+            }
 
-                ExecutionFlow.Execute(options);
-            },
-            new CombineFilesOptionsBinder(
-                helpOption,
-                listPresetsOption,
-                presetOption,
-                modeOption,
-                extensionsOption,
-                excludePathsOption,
-                excludeFilePatternsOption,
-                outputFileOption,
-                recurseOption,
-                enableLogOption,
-                interactiveOpt,
-                maxTokensOption,
-                partialFileModeOption,
-                debugOption,
-                compactSpacesOption,
-                compactLLMOption));
+            ExecutionFlow.Execute(options);
+        });
 
         return rootCommand;
     }

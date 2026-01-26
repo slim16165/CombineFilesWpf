@@ -1,5 +1,4 @@
-﻿using System.CommandLine.Builder;
-using System.CommandLine.Parsing;
+using System.CommandLine;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
@@ -28,13 +27,7 @@ class Program
             skipConflictingAliases: true /* se false => lancia eccezione */
         );
 
-        // 3) Costruiamo il parser
-        var commandLineBuilder = new CommandLineBuilder(rootCommand)
-            .UseDefaults();
-
-        var parser = commandLineBuilder.Build();
-
-        // 4) Eseguiamo il parser
-        return await parser.InvokeAsync(args);
+        // 3) Eseguiamo direttamente il comando (System.CommandLine 2.0+)
+        return rootCommand.Parse(args).Invoke();
     }
 }
