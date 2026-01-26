@@ -94,22 +94,9 @@ public static class RootCommandBuilder
         var rootCommand = new RootCommand("Strumento per combinare file seguendo diverse modalità di selezione");
         
         // Aggiunta delle opzioni (System.CommandLine 2.0+ usa Options.Add invece di AddOption)
-        rootCommand.Options.Add(helpOption);
-        rootCommand.Options.Add(listPresetsOption);
-        rootCommand.Options.Add(presetOption);
-        rootCommand.Options.Add(modeOption);
-        rootCommand.Options.Add(extensionsOption);
-        rootCommand.Options.Add(excludePathsOption);
-        rootCommand.Options.Add(excludeFilePatternsOption);
-        rootCommand.Options.Add(outputFileOption);
-        rootCommand.Options.Add(recurseOption);
-        rootCommand.Options.Add(enableLogOption);
-        rootCommand.Options.Add(interactiveOpt);
-        rootCommand.Options.Add(maxTokensOption);
-        rootCommand.Options.Add(partialFileModeOption);
-        rootCommand.Options.Add(debugOption);
-        rootCommand.Options.Add(compactSpacesOption);
-        rootCommand.Options.Add(compactLLMOption);
+        AddOptions(rootCommand, helpOption, listPresetsOption, presetOption, modeOption, extensionsOption,
+            excludePathsOption, excludeFilePatternsOption, outputFileOption, recurseOption, enableLogOption,
+            interactiveOpt, maxTokensOption, partialFileModeOption, debugOption, compactSpacesOption, compactLLMOption);
 
         // Imposta il gestore con SetAction (System.CommandLine 2.0+ usa SetAction invece di SetHandler)
         rootCommand.SetAction(parseResult =>
@@ -146,5 +133,16 @@ public static class RootCommandBuilder
         });
 
         return rootCommand;
+    }
+
+    /// <summary>
+    /// Aggiunge tutte le opzioni al RootCommand per evitare duplicazione di codice.
+    /// </summary>
+    private static void AddOptions(RootCommand rootCommand, params Option[] options)
+    {
+        foreach (var option in options)
+        {
+            rootCommand.Options.Add(option);
+        }
     }
 }

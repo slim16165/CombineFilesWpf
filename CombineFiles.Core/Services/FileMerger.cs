@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
@@ -88,46 +88,42 @@ public sealed class FileMerger : IDisposable
     }
 
     /* ---------- API PRINCIPALE ---------- */
+    /// <summary>
+    /// Unisce un file all'output.
+    /// </summary>
+    /// <param name="filePath">Percorso del file da unire.</param>
+    /// <param name="avoidDuplicatesByHash">Se true, evita duplicati basandosi sull'hash del file.</param>
+    /// <returns>True se il file è stato processato con successo, false se la strategia ExcludeCompletely ha bloccato l'operazione.</returns>
     public bool MergeFile(string filePath, bool avoidDuplicatesByHash = true)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new ArgumentException(nameof(filePath));
-
-        // stop immediato se la strategia è ExcludeCompletely e abbiamo già violato il budget
-        if (_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely)
-            return false;
-
-        // deduplicazione opzionale
-        if (avoidDuplicatesByHash && IsDuplicate(filePath))
-        {
-            _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
-            return true;
-        }
-
-        var relative = FileHelper.GetRelativePath(_baseDir, filePath);
-
-        if (_listOnlyFileNames)
-        {
-            WriteHeader(relative);
-            return true;
-        }
-
-        var truncInfo = ProcessFile(filePath, relative);
-
-        WriteLine(); _writer?.Flush();
-
-        return !(_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely);
+        return MergeFileInternal(filePath, 0, avoidDuplicatesByHash);
     }
 
-    // Overload: merge con limite token per questo file
+    /// <summary>
+    /// Unisce un file all'output con un limite token specifico per questo file.
+    /// </summary>
+    /// <param name="filePath">Percorso del file da unire.</param>
+    /// <param name="maxTokensForThisFile">Limite massimo di token per questo file (0 = usa il limite globale).</param>
+    /// <param name="avoidDuplicatesByHash">Se true, evita duplicati basandosi sull'hash del file.</param>
+    /// <returns>True se il file è stato processato con successo, false se la strategia ExcludeCompletely ha bloccato l'operazione.</returns>
     public bool MergeFile(string filePath, int maxTokensForThisFile, bool avoidDuplicatesByHash = true)
+    {
+        return MergeFileInternal(filePath, maxTokensForThisFile, avoidDuplicatesByHash);
+    }
+
+    /// <summary>
+    /// Logica comune per unire un file all'output.
+    /// </summary>
+    private bool MergeFileInternal(string filePath, int maxTokensForThisFile, bool avoidDuplicatesByHash)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException(nameof(filePath));
 
+        // Stop immediato se la strategia è ExcludeCompletely e abbiamo già violato il budget
         if (_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely)
             return false;
 
+        // Deduplicazione opzionale
         if (avoidDuplicatesByHash && IsDuplicate(filePath))
         {
             _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
@@ -144,71 +140,21 @@ public sealed class FileMerger : IDisposable
 
         var truncInfo = ProcessFile(filePath, relative, maxTokensForThisFile);
 
-        WriteLine(); _writer?.Flush();
+        WriteLine(); 
+        _writer?.Flush();
 
         return !(_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely);
     }
 
     /* ---------- CORE ---------- */
-    private FileTruncationInfo ProcessFile(string fullPath, string relativePath)
-    {
-        fullPath = FileHelper.NormalizeLongPath(fullPath);
-        long fileSize = TryGetFileSize(fullPath);
-
-        WriteHeader(relativePath);
-
-        long bytes = 0;
-        int lines = 0;
-        int tokens = 0;
-        bool truncated = false;
-
-        // Rileva encoding del file
-        Encoding fileEncoding = EncodingDetector.DetectEncoding(fullPath);
-        
-        foreach (var line in File.ReadLines(fullPath, fileEncoding))
-        {
-            if (_maxLinesPerFile > 0 && lines >= _maxLinesPerFile)
-            {
-                truncated = true;
-                break;
-            }
-
-            int lineTokens = CountTokens(line);
-            if (_tokensPerFile > 0 && tokens + lineTokens > _tokensPerFile)
-            {
-                truncated = true;
-                break;
-            }
-
-            WriteLine(line);
-            lines++;
-            tokens += lineTokens;
-            bytes += fileEncoding.GetByteCount(line) + Environment.NewLine.Length;
-        }
-
-        if (truncated)
-        {
-            _budgetViolated = true;
-            var info = new FileTruncationInfo
-            {
-                TotalBytes = fileSize,
-                ProcessedBytes = bytes,
-                ProcessedLines = lines
-            };
-            WriteTruncationFooter(info);
-            return info;
-        }
-
-        return new FileTruncationInfo
-        {
-            TotalBytes = fileSize,
-            ProcessedBytes = bytes,
-            ProcessedLines = lines
-        };
-    }
-
-    // Overload di ProcessFile con limite token per-file
-    private FileTruncationInfo ProcessFile(string fullPath, string relativePath, int maxTokensForThisFile)
+    /// <summary>
+    /// Processa un file, applicando limiti di righe e token.
+    /// </summary>
+    /// <param name="fullPath">Percorso completo del file.</param>
+    /// <param name="relativePath">Percorso relativo per l'header.</param>
+    /// <param name="maxTokensForThisFile">Limite token specifico per questo file (0 = usa _tokensPerFile).</param>
+    /// <returns>Informazioni sul troncamento del file.</returns>
+    private FileTruncationInfo ProcessFile(string fullPath, string relativePath, int maxTokensForThisFile = 0)
     {
         fullPath = FileHelper.NormalizeLongPath(fullPath);
         long fileSize = TryGetFileSize(fullPath);
