@@ -1,4 +1,5 @@
-﻿// FileViewModel.cs
+// FileViewModel.cs
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -21,8 +22,8 @@ public class FileViewModel : BaseFileSystemObjectViewModel
     /// <summary>
     /// Initializes a new instance of the <see cref="FileViewModel"/> class.
     /// </summary>
-    public FileViewModel(FileInfo fileInfo, IIconService iconService, IFileSystemService fileSystemService, bool showHiddenFiles, Regex filterRegex)
-        : base(iconService, fileSystemService, new FileOperationsService(), showHiddenFiles, filterRegex)
+    public FileViewModel(FileInfo fileInfo, IIconService iconService, IFileSystemService fileSystemService, FileSystemViewModelConfig config)
+        : base(iconService, fileSystemService, new FileOperationsService(), config)
     {
         _fileInfo = fileInfo;
         Name = _fileInfo.Name;
@@ -47,6 +48,15 @@ public class FileViewModel : BaseFileSystemObjectViewModel
     public override Task ExploreAsync()
     {
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Costruttore di retrocompatibilità - usare il costruttore con FileSystemViewModelConfig.
+    /// </summary>
+    [Obsolete("Usare il costruttore con FileSystemViewModelConfig invece di parametri individuali.")]
+    public FileViewModel(FileInfo fileInfo, IIconService iconService, IFileSystemService fileSystemService, bool showHiddenFiles, Regex filterRegex)
+        : this(fileInfo, iconService, fileSystemService, new FileSystemViewModelConfig(showHiddenFiles, filterRegex))
+    {
     }
 
 }

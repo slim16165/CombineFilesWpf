@@ -40,75 +40,9 @@ public partial class TreeViewFileExplorerCustom : UserControl
         DataContext = _viewModel;
     }
 
-    private void RadTreeView_DragOver(object sender, DragEventArgs e)
-    {
-        if (!e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            e.Effects = DragDropEffects.None;
-            e.Handled = true;
-            return;
-        }
-
-        string[] droppedPaths = (string[])e.Data.GetData(DataFormats.FileDrop);
-        foreach (var path in droppedPaths)
-        {
-            if (!_fileSystemService.IsAccessibleAsync(path).Result)
-            {
-                e.Effects = DragDropEffects.None;
-                e.Handled = true;
-                return;
-            }
-        }
-
-        e.Effects = DragDropEffects.Move | DragDropEffects.Copy;
-        e.Handled = true;
-    }
-
-    private async void RadTreeView_Drop(object sender, DragEventArgs e)
-    {
-        // TODO: Implementare drag & drop quando RadTreeView sarà disponibile
-        // Questo metodo è disabilitato perché RadTreeView è commentato nel XAML
-        // e i riferimenti Telerik non sono disponibili nel formato SDK-style
-        /*
-        if (e.Data.GetDataPresent(DataFormats.FileDrop))
-        {
-            string[] droppedPaths = (string[])e.Data.GetData(DataFormats.FileDrop);
-
-            var treeView = sender as Telerik.Windows.Controls.RadTreeView;
-            var targetItem = treeView.InputHitTest(e.GetPosition(treeView)) as Telerik.Windows.Controls.RadTreeViewItem;
-
-            if (targetItem != null)
-            {
-                var targetViewModel = targetItem.DataContext as IFileSystemObjectViewModel;
-                if (targetViewModel != null && targetViewModel is DirectoryViewModel targetDirectory)
-                {
-                    foreach (var path in droppedPaths)
-                    {
-                        string fileName = System.IO.Path.GetFileName(path);
-                        string destPath = System.IO.Path.Combine(targetDirectory.Path, fileName);
-
-                        try
-                        {
-                            if (System.IO.Directory.Exists(path))
-                            {
-                                System.IO.Directory.Move(path, destPath);
-                            }
-                            else if (System.IO.File.Exists(path))
-                            {
-                                System.IO.File.Move(path, destPath);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show($"Errore nello spostare {fileName}: {ex.Message}", "Errore", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                    }
-
-                    // Refresh la directory target
-                    await targetDirectory.ExploreAsync();
-                }
-            }
-        }
-        */
-    }
+    // NOTE: I metodi RadTreeView_DragOver e RadTreeView_Drop sono stati rimossi perché:
+    // 1. RadTreeView è commentato nel XAML e non è più utilizzato (riferimenti Telerik non disponibili in SDK-style)
+    // 2. RadTreeView_DragOver usava .Result su async, causando potenziali deadlock
+    // 3. Se in futuro si ripristina RadTreeView o si implementa drag & drop con controlli standard WPF,
+    //    questi metodi dovranno essere riscritti senza usare .Result e con gestione async corretta
 }

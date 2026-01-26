@@ -49,7 +49,7 @@ public class AnalyticsService
                 var normalized = FileHelper.NormalizeLongPath(path);
                 var fi = new FileInfo(normalized);
                 int lines = CountLines(normalized);
-                int tokens = EstimateTokens(normalized, fi);
+                int tokens = TokenEstimationService.EstimateTokens(normalized, fi);
 
                 fileInfos.Add((normalized, fi, lines, tokens));
 
@@ -224,33 +224,6 @@ public class AnalyticsService
         }
     }
 
-    private int EstimateTokens(string filePath, FileInfo fi)
-    {
-        try
-        {
-            // Stima basata sulla dimensione (simile a FileCollector)
-            string extension = fi.Extension.ToLower();
-            double tokensPerByte = extension switch
-            {
-                ".cs" or ".java" or ".cpp" or ".c" or ".h" => 0.20,
-                ".py" or ".js" or ".ts" => 0.22,
-                ".xml" or ".html" or ".xaml" => 0.15,
-                ".json" or ".yaml" or ".yml" => 0.18,
-                ".txt" or ".md" or ".rst" => 0.25,
-                ".sql" => 0.20,
-                ".css" or ".scss" or ".less" => 0.18,
-                ".log" => 0.25,
-                ".config" or ".ini" or ".properties" => 0.20,
-                _ => 0.25
-            };
-
-            return Math.Max(1, (int)Math.Ceiling(fi.Length * tokensPerByte));
-        }
-        catch
-        {
-            return 1;
-        }
-    }
 
     private string DetectLanguage(string extension)
     {

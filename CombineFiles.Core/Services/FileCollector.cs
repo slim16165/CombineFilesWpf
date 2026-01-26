@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -250,7 +250,7 @@ public class FileCollector
                         Size = fi.Length,
                         LastModified = fi.LastWriteTime,
                         Extension = fi.Extension.ToLower(),
-                        EstimatedTokens = EstimateFileTokens(normalized, fi)
+                        EstimatedTokens = TokenEstimationService.EstimateTokens(normalized, fi)
                     });
                 }
                 catch (Exception ex)
@@ -349,38 +349,6 @@ public class FileCollector
         return (int)Math.Ceiling(headerLength / 4.0);
     }
 
-    private int EstimateFileTokens(string filePath, System.IO.FileInfo fileInfo)
-    {
-        try
-        {
-            // Usa una stima più accurata basata sul tipo di file
-            string extension = fileInfo.Extension.ToLower();
-            double tokensPerByte = extension switch
-            {
-                ".cs" or ".java" or ".cpp" or ".c" or ".h" => 0.20,     // Codice: più denso
-                ".py" or ".js" or ".ts" => 0.22,                        // Script: abbastanza denso
-                ".xml" or ".html" or ".xaml" => 0.15,                   // Markup: molto verboso
-                ".json" or ".yaml" or ".yml" => 0.18,                   // Dati strutturati
-                ".txt" or ".md" or ".rst" => 0.25,                      // Testo normale
-                ".sql" => 0.20,                                          // SQL
-                ".css" or ".scss" or ".less" => 0.18,                   // Stili
-                ".log" => 0.25,                                          // Log files
-                ".config" or ".ini" or ".properties" => 0.20,           // Configuration
-                _ => 0.25                                                // Default: assume testo
-            };
-
-            // Per file molto piccoli, usa un minimo di token
-            int estimatedTokens = (int)Math.Ceiling(fileInfo.Length * tokensPerByte);
-            return Math.Max(estimatedTokens, 1);
-        }
-        catch (Exception ex)
-        {
-            _logger.WriteLog(
-                $"Errore nella stima dei token per {ToRelativePath(filePath)}: {ex.Message}",
-                LogLevel.DEBUG);
-            return 1; // Ritorna almeno 1 token
-        }
-    }
 
     /// <summary>
     /// Avvia la selezione interattiva tramite Notepad con informazioni sui token.
@@ -400,7 +368,7 @@ public class FileCollector
                 {
                     Path = file,
                     Size = fi.Length,
-                    EstimatedTokens = EstimateFileTokens(normalized, fi),
+                    EstimatedTokens = TokenEstimationService.EstimateTokens(normalized, fi),
                     Extension = fi.Extension
                 });
             }

@@ -11,6 +11,10 @@ namespace CombineFiles.ConsoleApp.Helpers;
 /// </summary>
 public static class CombineFilesOptionsBinder
 {
+    /// <summary>
+    /// Metodo di convenienza per creare CombineFilesOptions usando il builder pattern.
+    /// Mantiene la retrocompatibilità con il codice esistente.
+    /// </summary>
     public static CombineFilesOptions CreateOptions(
         bool help,
         bool listPresets,
@@ -28,33 +32,22 @@ public static class CombineFilesOptionsBinder
         bool compactSpaces,
         bool compactLLM)
     {
-        // Conversione della stringa PartialFileMode in enum TokenLimitStrategy
-        string partialFileModeStr = partialFileMode ?? "partial";
-        TokenLimitStrategy partialFileModeEnum = partialFileModeStr.Trim().ToLowerInvariant() switch
-        {
-            "partial" => TokenLimitStrategy.IncludePartial,
-            "exclude" => TokenLimitStrategy.ExcludeCompletely,
-            "paginate" => TokenLimitStrategy.PaginateOutput, // nuova modalità
-            _ => TokenLimitStrategy.IncludePartial
-        };
-
-        return new CombineFilesOptions
-        {
-            Help = help,
-            ListPresets = listPresets,
-            Preset = preset,
-            Mode = mode,
-            Extensions = extensions ?? new List<string>(),
-            ExcludePaths = excludePaths ?? new List<string>(),
-            ExcludeFilePatterns = excludeFilePatterns ?? new List<string>(),
-            OutputFile = outputFile,
-            Recurse = recurse,
-            EnableLog = enableLog,
-            Interactive = interactive,
-            MaxTotalTokens = maxTokens,
-            PartialFileMode = partialFileModeEnum,
-            CompactSpacesToTabs = compactSpaces,
-            CompactForLLM = compactLLM,
-        };
+        return new CombineFilesOptionsBuilder()
+            .WithHelp(help)
+            .WithListPresets(listPresets)
+            .WithPreset(preset)
+            .WithMode(mode)
+            .WithExtensions(extensions)
+            .WithExcludePaths(excludePaths)
+            .WithExcludeFilePatterns(excludeFilePatterns)
+            .WithOutputFile(outputFile)
+            .WithRecurse(recurse)
+            .WithEnableLog(enableLog)
+            .WithInteractive(interactive)
+            .WithMaxTokens(maxTokens)
+            .WithPartialFileMode(partialFileMode)
+            .WithCompactSpaces(compactSpaces)
+            .WithCompactLLM(compactLLM)
+            .Build();
     }
 }

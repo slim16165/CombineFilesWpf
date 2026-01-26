@@ -1,4 +1,4 @@
-﻿// TreeViewExplorerViewModel.cs
+// TreeViewExplorerViewModel.cs
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -207,7 +207,13 @@ public class TreeViewExplorerViewModel : INotifyPropertyChanged
     {
         foreach (var drive in DriveInfo.GetDrives().Where(d => d.IsReady))
         {
-            var dirViewModel = new DirectoryViewModel(drive.RootDirectory, _iconService, _fileSystemService, null, _eventAggregator, ShowHiddenFiles, _regexFilter);
+            var dirViewModel = new DirectoryViewModel(
+                drive.RootDirectory,
+                _iconService,
+                _fileSystemService,
+                null,
+                _eventAggregator,
+                new FileSystemViewModelConfig(ShowHiddenFiles, _regexFilter));
             dirViewModel.PropertyChanged += OnFileSystemObjectPropertyChanged;
             RootItems.Add(dirViewModel);
         }

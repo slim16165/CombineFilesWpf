@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -29,21 +29,19 @@ public class DirectoryViewModel : BaseFileSystemObjectViewModel
     /// <param name="fileSystemService">Servizio per l'accesso asincrono al file system.</param>
     /// <param name="fileOperationsService">Servizio che implementa le operazioni di copia/move/rename/delete.</param>
     /// <param name="eventAggregator">Event aggregator per comunicare Before/AfterExplore.</param>
-    /// <param name="showHiddenFiles">Indica se mostrare i file/cartelle nascosti.</param>
-    /// <param name="filterRegex">Regex di filtro (può essere null se non usato).</param>
+    /// <param name="config">Configurazione per il ViewModel.</param>
     public DirectoryViewModel(
         DirectoryInfo directoryInfo,
         IIconService iconService,
         IFileSystemService fileSystemService,
         IFileOperationsService fileOperationsService,
         IEventAggregator eventAggregator,
-        bool showHiddenFiles,
-        Regex filterRegex)
-        : base(iconService, fileSystemService, fileOperationsService, showHiddenFiles, filterRegex)
+        FileSystemViewModelConfig config)
+        : base(iconService, fileSystemService, fileOperationsService, config)
     {
         _eventAggregator = eventAggregator;
-        _showHiddenFiles = showHiddenFiles;
-        _filterRegex = filterRegex;
+        _showHiddenFiles = config.ShowHiddenFiles;
+        _filterRegex = config.FilterRegex;
 
         // Impostiamo Nome e Path dal DirectoryInfo
         Name = directoryInfo.Name;
@@ -54,6 +52,22 @@ public class DirectoryViewModel : BaseFileSystemObjectViewModel
 
         // Aggiunge un "dummy" per permettere il caricamento lazy (espansione).
         Children.Add(new DummyViewModel());
+    }
+
+    /// <summary>
+    /// Costruttore di retrocompatibilità - usare il costruttore con FileSystemViewModelConfig.
+    /// </summary>
+    [Obsolete("Usare il costruttore con FileSystemViewModelConfig invece di parametri individuali.")]
+    public DirectoryViewModel(
+        DirectoryInfo directoryInfo,
+        IIconService iconService,
+        IFileSystemService fileSystemService,
+        IFileOperationsService fileOperationsService,
+        IEventAggregator eventAggregator,
+        bool showHiddenFiles,
+        Regex filterRegex)
+        : this(directoryInfo, iconService, fileSystemService, fileOperationsService, eventAggregator, new FileSystemViewModelConfig(showHiddenFiles, filterRegex))
+    {
     }
 
     public override string Name { get; protected set; }
@@ -94,8 +108,7 @@ public class DirectoryViewModel : BaseFileSystemObjectViewModel
                         FileSystemService,
                         FileOperationsService,
                         _eventAggregator,
-                        _showHiddenFiles,
-                        _filterRegex);
+                        new FileSystemViewModelConfig(_showHiddenFiles, _filterRegex));
 
                     dirViewModel.PropertyChanged += OnChildPropertyChanged;
                     Children.Add(dirViewModel);
@@ -109,8 +122,7 @@ public class DirectoryViewModel : BaseFileSystemObjectViewModel
                         file,
                         IconService,
                         FileSystemService,
-                        _showHiddenFiles,
-                        _filterRegex);
+                        new FileSystemViewModelConfig(_showHiddenFiles, _filterRegex));
 
                     fileViewModel.PropertyChanged += OnChildPropertyChanged;
                     Children.Add(fileViewModel);

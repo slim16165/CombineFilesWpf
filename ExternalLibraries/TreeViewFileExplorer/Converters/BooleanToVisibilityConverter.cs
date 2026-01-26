@@ -1,4 +1,4 @@
-﻿// BooleanToVisibilityConverter.cs
+// BooleanToVisibilityConverter.cs
 using System;
 using System.Globalization;
 using System.Windows;
@@ -17,6 +17,12 @@ public class BooleanToVisibilityConverter : IValueConverter
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        throw new NotImplementedException();
+        if (value is Visibility visibility)
+        {
+            return visibility == Visibility.Visible;
+        }
+
+        // Se il valore non è Visibility, ritorna false come default
+        return false;
     }
 }

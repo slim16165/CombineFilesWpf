@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,7 +30,7 @@ public partial class MainWindow : Window
             
             foreach (var vf in validFiles)
             {
-                _fileItems.Add(new FileItem { FilePath = vf, FileName = Path.GetFileName(vf) });
+                _fileItems.Add(new FileItem(Path.GetFileName(vf), vf));
             }
 
             FilesListBox.ItemsSource = _fileItems;
@@ -133,6 +133,34 @@ public partial class MainWindow : Window
 /// </summary>
 public class FileItem
 {
+    /// <summary>
+    /// Nome del file o directory.
+    /// </summary>
     public string FileName { get; set; }
+
+    /// <summary>
+    /// Percorso completo del file o directory.
+    /// </summary>
     public string FilePath { get; set; }
+
+    /// <summary>
+    /// Inizializza una nuova istanza di FileItem con i valori specificati.
+    /// </summary>
+    /// <param name="fileName">Nome del file o directory.</param>
+    /// <param name="filePath">Percorso completo del file o directory.</param>
+    /// <exception cref="ArgumentNullException">Se fileName o filePath sono null.</exception>
+    public FileItem(string fileName, string filePath)
+    {
+        FileName = fileName ?? throw new ArgumentNullException(nameof(fileName));
+        FilePath = filePath ?? throw new ArgumentNullException(nameof(filePath));
+    }
+
+    /// <summary>
+    /// Costruttore di default per la serializzazione e il binding.
+    /// </summary>
+    public FileItem()
+    {
+        FileName = string.Empty;
+        FilePath = string.Empty;
+    }
 }

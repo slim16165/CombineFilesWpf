@@ -1,4 +1,4 @@
-﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using Microsoft.WindowsAPICodePack.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -36,8 +36,7 @@ public abstract class BaseFileSystemObjectViewModel : IFileSystemObjectViewModel
         IIconService iconService,
         IFileSystemService fileSystemService,
         IFileOperationsService fileOperationsService,
-        bool showHiddenFiles,
-        Regex filterRegex)
+        FileSystemViewModelConfig config)
     {
         IconService = iconService;
         FileSystemService = fileSystemService;
@@ -52,6 +51,20 @@ public abstract class BaseFileSystemObjectViewModel : IFileSystemObjectViewModel
         RenameCommand = new RelayCommand(Rename);
         CopyCommand = new RelayCommand(Copy);
         MoveCommand = new RelayCommand(Move);
+    }
+
+    /// <summary>
+    /// Costruttore base per i ViewModel di file system (file e cartelle) - retrocompatibilità.
+    /// </summary>
+    [Obsolete("Usare il costruttore con FileSystemViewModelConfig invece di parametri individuali.")]
+    protected BaseFileSystemObjectViewModel(
+        IIconService iconService,
+        IFileSystemService fileSystemService,
+        IFileOperationsService fileOperationsService,
+        bool showHiddenFiles,
+        Regex filterRegex)
+        : this(iconService, fileSystemService, fileOperationsService, new FileSystemViewModelConfig(showHiddenFiles, filterRegex))
+    {
     }
 
     // Proprietà astratte da implementare in DirectoryViewModel e FileViewModel

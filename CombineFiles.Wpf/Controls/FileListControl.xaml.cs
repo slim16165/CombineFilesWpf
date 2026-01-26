@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
+using TreeViewFileExplorer;
 using TreeViewFileExplorer.Model;
 using TreeViewFileExplorer.ViewModels;
 
@@ -12,10 +13,16 @@ public partial class FileListControl : UserControl
     // public ObservableCollection<FileItem> FileItems { get; set; }
 
     public ObservableCollection<FileItem> SelectedFiles { get; private set; } = new ObservableCollection<FileItem>();
+    private TreeViewFileExplorerCustom? treeViewFileExplorer;
 
     public FileListControl()
     {
         InitializeComponent();
+        
+        // Crea il controllo TreeViewFileExplorerCustom programmaticamente per evitare problemi con ProjectReference in XAML
+        treeViewFileExplorer = new TreeViewFileExplorerCustom();
+        treeViewFileExplorerContainer.Content = treeViewFileExplorer;
+        
         // Inizializzare i dati per il controllo TreeView personalizzato
         // radTreeListViewFiles.DataContext = FileItems; // Non necessario se gestito internamente
         // radTreeListViewFiles.radTreeView.SelectionChanged += RadTreeView_SelectionChanged; // Rimosso
@@ -40,9 +47,12 @@ public partial class FileListControl : UserControl
     {
         // Aggiorna la collezione SelectedFiles nel FileListControl
         SelectedFiles.Clear();
-        foreach (var file in (treeViewFileExplorer.DataContext as TreeViewExplorerViewModel)?.SelectedFiles)
+        if (treeViewFileExplorer?.DataContext is TreeViewExplorerViewModel viewModel)
         {
-            SelectedFiles.Add(file);
+            foreach (var file in viewModel.SelectedFiles)
+            {
+                SelectedFiles.Add(file);
+            }
         }
 
         // Puoi aggiungere ulteriori logiche qui, ad esempio aggiornare una ListBox o altre UI
@@ -51,7 +61,10 @@ public partial class FileListControl : UserControl
     // Metodo per disabilitare/abilitare i controlli
     public void ToggleControls(bool isEnabled)
     {
-        treeViewFileExplorer.IsEnabled = isEnabled;
+        if (treeViewFileExplorer != null)
+        {
+            treeViewFileExplorer.IsEnabled = isEnabled;
+        }
         // Altri controlli possono essere abilitati/disabilitati qui
     }
 }
