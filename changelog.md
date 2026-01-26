@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) and follows [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+### Added
+- Documentazione architettura completa del progetto in `docs/ARCHITETTURA.md`.
+
+### Changed
+- Spostata documentazione architettura nella cartella `docs/` per migliore organizzazione.
+
+---
+
 ## [1.3.0] – 2025-12-10
 ### Added
 - Nuova classe `TextCompactor` per ottimizzare l'output per l'uso con LLM (ChatGPT, Claude, ecc.).  
