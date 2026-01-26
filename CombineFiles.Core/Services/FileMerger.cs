@@ -116,34 +116,33 @@ public sealed class FileMerger : IDisposable
     /// </summary>
     private bool MergeFileInternal(string filePath, int maxTokensForThisFile, bool avoidDuplicatesByHash)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new ArgumentException(nameof(filePath));
+        var result = FileMergerHelper.ValidateAndPrepareFile(
+            filePath,
+            _baseDir,
+            avoidDuplicatesByHash,
+            _listOnlyFileNames,
+            IsDuplicate,
+            () => _budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely,
+            WriteHeader,
+            out string relative);
 
-        // Stop immediato se la strategia è ExcludeCompletely e abbiamo già violato il budget
-        if (_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely)
-            return false;
-
-        // Deduplicazione opzionale
-        if (avoidDuplicatesByHash && IsDuplicate(filePath))
+        switch (result)
         {
-            _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
-            return true;
+            case FileMergerHelper.ValidationResult.Skip:
+                return false;
+            case FileMergerHelper.ValidationResult.SkipDuplicate:
+                _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
+                return true;
+            case FileMergerHelper.ValidationResult.HeaderOnly:
+                return true;
+            case FileMergerHelper.ValidationResult.Process:
+                var truncInfo = ProcessFile(filePath, relative, maxTokensForThisFile);
+                WriteLine();
+                _writer?.Flush();
+                return !(_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely);
+            default:
+                return false;
         }
-
-        var relative = FileHelper.GetRelativePath(_baseDir, filePath);
-
-        if (_listOnlyFileNames)
-        {
-            WriteHeader(relative);
-            return true;
-        }
-
-        var truncInfo = ProcessFile(filePath, relative, maxTokensForThisFile);
-
-        WriteLine(); 
-        _writer?.Flush();
-
-        return !(_budgetViolated && _tokenLimitStrategy == TokenLimitStrategy.ExcludeCompletely);
     }
 
     /* ---------- CORE ---------- */
@@ -252,16 +251,7 @@ public sealed class FileMerger : IDisposable
 
     private bool IsDuplicate(string filePath)
     {
-        try
-        {
-            using var fs = File.OpenRead(filePath);
-            var hash = Convert.ToBase64String(_sha.ComputeHash(fs));
-            return !_processedHashes.Add(hash);
-        }
-        catch
-        {
-            return false;
-        }
+        return FileMergerHelper.IsDuplicate(filePath, _sha, _processedHashes);
     }
 
     private static string FormatBytes(long b)

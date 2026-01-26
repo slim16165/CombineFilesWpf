@@ -68,25 +68,31 @@ public sealed class PaginatedFileMerger : IDisposable
 
     public bool MergeFile(string filePath, bool avoidDuplicatesByHash = true)
     {
-        if (string.IsNullOrWhiteSpace(filePath))
-            throw new ArgumentException(nameof(filePath));
+        var result = FileMergerHelper.ValidateAndPrepareFile(
+            filePath,
+            _baseDir,
+            avoidDuplicatesByHash,
+            _listOnlyFileNames,
+            IsDuplicate,
+            () => false, // PaginatedFileMerger non ha logica di skip per budget
+            WriteHeader,
+            out string relative);
 
-        if (avoidDuplicatesByHash && IsDuplicate(filePath))
+        switch (result)
         {
-            _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
-            return true;
+            case FileMergerHelper.ValidationResult.Skip:
+                return false;
+            case FileMergerHelper.ValidationResult.SkipDuplicate:
+                _logger.WriteLog($"Skipped duplicate: {filePath}", LogLevel.DEBUG);
+                return true;
+            case FileMergerHelper.ValidationResult.HeaderOnly:
+                return true;
+            case FileMergerHelper.ValidationResult.Process:
+                ProcessFileWithPagination(filePath, relative);
+                return true;
+            default:
+                return false;
         }
-
-        var relative = FileHelper.GetRelativePath(_baseDir, filePath);
-
-        if (_listOnlyFileNames)
-        {
-            WriteHeader(relative);
-            return true;
-        }
-
-        ProcessFileWithPagination(filePath, relative);
-        return true;
     }
 
     private void ProcessFileWithPagination(string fullPath, string relativePath)
@@ -222,16 +228,7 @@ public sealed class PaginatedFileMerger : IDisposable
 
     private bool IsDuplicate(string filePath)
     {
-        try
-        {
-            using var fs = File.OpenRead(filePath);
-            var hash = Convert.ToBase64String(_sha.ComputeHash(fs));
-            return !_processedHashes.Add(hash);
-        }
-        catch
-        {
-            return false;
-        }
+        return FileMergerHelper.IsDuplicate(filePath, _sha, _processedHashes);
     }
 
     /// <summary>
