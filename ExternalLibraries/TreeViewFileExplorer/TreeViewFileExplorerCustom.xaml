@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="TreeViewFileExplorer.TreeViewFileExplorerCustom"
+<UserControl x:Class="TreeViewFileExplorer.TreeViewFileExplorerCustom"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:telerik="http://schemas.telerik.com/2008/xaml/presentation"
@@ -45,26 +45,24 @@
 
     <DockPanel>
         <!-- Toolbar -->
-        <telerik:RadToolBar DockPanel.Dock="Top" Height="40">
-            <telerik:RadButton Command="{Binding ToggleHiddenFilesCommand}" 
-                                      ToolTip="Mostra/Nascondi File Nascosti" 
-                                      Content="👁️" />
-            <telerik:RadButton Command="{Binding ApplyFilterCommand}" 
-                               ToolTip="Applica Filtro Regex" 
-                               Content="🔍" />
-            <telerik:RadButton Command="{Binding NavigateToFolderCommand}" 
-                               ToolTip="Vai a Cartella" 
-                               Content="📂" />
+        <ToolBar DockPanel.Dock="Top" Height="40">
+            <Button Command="{Binding ToggleHiddenFilesCommand}" 
+                    ToolTip="Mostra/Nascondi File Nascosti" 
+                    Content="👁️" />
+            <Button Command="{Binding ApplyFilterCommand}" 
+                    ToolTip="Applica Filtro Regex" 
+                    Content="🔍" />
+            <Button Command="{Binding NavigateToFolderCommand}" 
+                    ToolTip="Vai a Cartella" 
+                    Content="📂" />
             <!-- Spinner di Caricamento -->
-            <telerik:RadBusyIndicator IsBusy="{Binding IsLoading}" 
-                                     Width="24" Height="24" 
-                                     Margin="10,0,0,0"
-                                     Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <telerik:RadBusyIndicator.BusyContent>
-                    <TextBlock Text="Caricamento..." />
-                </telerik:RadBusyIndicator.BusyContent>
-            </telerik:RadBusyIndicator>
-        </telerik:RadToolBar>
+            <StackPanel Orientation="Horizontal" 
+                       Margin="10,0,0,0"
+                       Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <ProgressBar Width="24" Height="24" IsIndeterminate="True" Margin="0,0,5,0" />
+                <TextBlock Text="Caricamento..." VerticalAlignment="Center" />
+            </StackPanel>
+        </ToolBar>
 
         <!-- TreeView -->
         <Grid>

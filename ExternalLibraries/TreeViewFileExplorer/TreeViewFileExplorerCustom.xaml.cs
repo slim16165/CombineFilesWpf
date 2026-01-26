@@ -1,4 +1,4 @@
-﻿// TreeViewFileExplorerCustom.xaml.cs
+// TreeViewFileExplorerCustom.xaml.cs
 using System;
 using System.Windows;
 using System.Windows.Controls;
@@ -66,6 +66,10 @@ public partial class TreeViewFileExplorerCustom : UserControl
 
     private async void RadTreeView_Drop(object sender, DragEventArgs e)
     {
+        // TODO: Implementare drag & drop quando RadTreeView sarà disponibile
+        // Questo metodo è disabilitato perché RadTreeView è commentato nel XAML
+        // e i riferimenti Telerik non sono disponibili nel formato SDK-style
+        /*
         if (e.Data.GetDataPresent(DataFormats.FileDrop))
         {
             string[] droppedPaths = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -105,5 +109,6 @@ public partial class TreeViewFileExplorerCustom : UserControl
                 }
             }
         }
+        */
     }
 }
