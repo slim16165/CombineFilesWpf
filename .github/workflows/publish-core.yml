@@ -16,7 +16,7 @@ jobs:
   #    Compila il progetto e carica un artifact con i binari (Release).
   #------------------------------------------------------------------------------
   build:
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(((github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && github.event.pull_request.head.repo.full_name != github.repository) && '["windows-latest"]' || vars.CI_RUNNER_WINDOWS_JSON || '["windows-latest"]') }}
     # ► Facoltativo: se vuoi costruire anche sui tag, elimina tutto l’“if”
     if: |
       github.event_name == 'pull_request' ||
@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
 
       - name: Installazione .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'    # SDK 9 (compatibile con .NET Framework 4.7.2)
 
@@ -50,7 +50,7 @@ jobs:
   #    e infine spinge il pacchetto su NuGet.org.
   #------------------------------------------------------------------------------
   publish:
-    runs-on: windows-latest
+    runs-on: ${{ fromJSON(((github.event_name == 'pull_request' || github.event_name == 'pull_request_target') && github.event.pull_request.head.repo.full_name != github.repository) && '["windows-latest"]' || vars.CI_RUNNER_WINDOWS_JSON || '["windows-latest"]') }}
     # ► togli “needs: build” per evitare lo skip quando build è saltato
     # needs: build
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
@@ -61,7 +61,7 @@ jobs:
           fetch-depth: 0
 
       - name: Installazione .NET SDK
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
       - name: Estrai versione dal tag
